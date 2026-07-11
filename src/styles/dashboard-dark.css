@@ -1,0 +1,134 @@
+/* ============================================
+   DEVLYX DASHBOARD — DARK MODE GLOBAL OVERRIDES
+   Applied when [data-dash-theme="dark"] is set
+   on the root dashboard div
+   ============================================ */
+
+[data-dash-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Backgrounds */
+[data-dash-theme="dark"] .bg-white {
+  background-color: #1e1e2a !important;
+}
+[data-dash-theme="dark"] .bg-\[\#f8f9fc\],
+[data-dash-theme="dark"] .bg-\[\#fcfcfd\] {
+  background-color: #0f0f14 !important;
+}
+[data-dash-theme="dark"] .bg-gray-50,
+[data-dash-theme="dark"] .bg-gray-50\/50,
+[data-dash-theme="dark"] .bg-gray-50\/30 {
+  background-color: #16161e !important;
+}
+[data-dash-theme="dark"] .bg-gray-100 {
+  background-color: #2a2a3a !important;
+}
+[data-dash-theme="dark"] .bg-gray-200 {
+  background-color: #3a3a4a !important;
+}
+[data-dash-theme="dark"] .bg-purple-50 {
+  background-color: #2d1f5e !important;
+}
+[data-dash-theme="dark"] .bg-indigo-50 {
+  background-color: #1e1a4a !important;
+}
+[data-dash-theme="dark"] .bg-amber-50 {
+  background-color: #2a1e00 !important;
+}
+[data-dash-theme="dark"] .bg-red-50 {
+  background-color: #2a0f0f !important;
+}
+[data-dash-theme="dark"] .bg-emerald-50 {
+  background-color: #0a2a1a !important;
+}
+
+/* Text Colors */
+[data-dash-theme="dark"] .text-gray-900 {
+  color: #f1f1f5 !important;
+}
+[data-dash-theme="dark"] .text-gray-800 {
+  color: #e4e4ea !important;
+}
+[data-dash-theme="dark"] .text-gray-700 {
+  color: #d0d0dc !important;
+}
+[data-dash-theme="dark"] .text-gray-600 {
+  color: #b0b0c0 !important;
+}
+[data-dash-theme="dark"] .text-gray-500 {
+  color: #9090a8 !important;
+}
+[data-dash-theme="dark"] .text-gray-400 {
+  color: #7070888 !important;
+}
+
+/* Borders */
+[data-dash-theme="dark"] .border-gray-100 {
+  border-color: #2a2a3a !important;
+}
+[data-dash-theme="dark"] .border-gray-200 {
+  border-color: #3a3a4a !important;
+}
+[data-dash-theme="dark"] .border-t,
+[data-dash-theme="dark"] .border-b,
+[data-dash-theme="dark"] .border {
+  border-color: #2a2a3a !important;
+}
+[data-dash-theme="dark"] .divide-gray-50 > * + * {
+  border-color: #2a2a3a !important;
+}
+[data-dash-theme="dark"] .divide-gray-100 > * + * {
+  border-color: #2a2a3a !important;
+}
+
+/* Inputs */
+[data-dash-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-dash-theme="dark"] textarea,
+[data-dash-theme="dark"] select {
+  background-color: #1e1e2a !important;
+  color: #f1f1f5 !important;
+  border-color: #2a2a3a !important;
+}
+[data-dash-theme="dark"] input::placeholder,
+[data-dash-theme="dark"] textarea::placeholder {
+  color: #5a5a72 !important;
+}
+
+/* Table rows */
+[data-dash-theme="dark"] tr:hover {
+  background-color: #1e1e2a !important;
+}
+[data-dash-theme="dark"] .hover\:bg-gray-50:hover,
+[data-dash-theme="dark"] .hover\:bg-gray-50\/50:hover {
+  background-color: #1a1a25 !important;
+}
+
+/* Shadows — soften in dark mode */
+[data-dash-theme="dark"] .shadow-sm {
+  box-shadow: 0 1px 8px rgba(0,0,0,0.4) !important;
+}
+
+/* Amber/warning text in dark */
+[data-dash-theme="dark"] .text-amber-700 {
+  color: #f59e0b !important;
+}
+[data-dash-theme="dark"] .text-amber-800 {
+  color: #d97706 !important;
+}
+
+/* Scrollbar */
+[data-dash-theme="dark"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-dash-theme="dark"] ::-webkit-scrollbar-track {
+  background: #1e1e2a;
+}
+[data-dash-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3a3a4a;
+  border-radius: 3px;
+}
+[data-dash-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #6a35ff;
+}
