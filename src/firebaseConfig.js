@@ -6,7 +6,7 @@ import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAbagZtJi5viJqXRlfUSdNZmWSf85GHVPg",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "devlyx-blog.firebaseapp.com",
   projectId: "devlyx-blog",
   storageBucket: "devlyx-blog.firebasestorage.app",

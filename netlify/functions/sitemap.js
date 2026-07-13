@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, query, orderBy } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAbagZtJi5viJqXRlfUSdNZmWSf85GHVPg",
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
   authDomain: "devlyx-blog.firebaseapp.com",
   projectId: "devlyx-blog",
   storageBucket: "devlyx-blog.firebasestorage.app",
