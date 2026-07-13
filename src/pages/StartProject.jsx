@@ -412,14 +412,17 @@ const StartProject = () => {
                           Next Milestone <ArrowRight size={16} />
                         </button>
                       ) : (
-                        <button
-                          onClick={handleSubmit}
-                          disabled={loading || !formData.name || !formData.email}
-                          className="flex items-center gap-4 bg-[#6a35ff] text-white px-12 py-6 rounded-full text-[10px] font-black uppercase tracking-widest transition-all hover:shadow-[0_20px_50px_rgba(106,53,255,0.4)] hover:-translate-y-1 disabled:opacity-50"
-                        >
-                          {loading ? <Loader2 size={18} className="animate-spin" /> : <Target size={18} />}
-                          Launch Partnership
-                        </button>
+                        <div className="flex flex-col items-end gap-3">
+                          <button
+                            onClick={handleSubmit}
+                            disabled={loading || !formData.name || !formData.email}
+                            className="flex items-center gap-4 bg-[#6a35ff] text-white px-12 py-6 rounded-full text-[10px] font-black uppercase tracking-widest transition-all hover:shadow-[0_20px_50px_rgba(106,53,255,0.4)] hover:-translate-y-1 disabled:opacity-50"
+                          >
+                            {loading ? <Loader2 size={18} className="animate-spin" /> : <Target size={18} />}
+                            Launch Partnership
+                          </button>
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">No credit card required. We reply in 24 hours.</p>
+                        </div>
                       )}
                     </div>
                   </div>

@@ -1,181 +1,243 @@
-import React from 'react';
-import { Globe, Navigation } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { Globe as GlobeIcon, Navigation, Activity, Users, MapPin } from 'lucide-react';
+import Globe from 'react-globe.gl';
 
-// Comprehensive Coordinate Mapping for most countries
+// Lat/Long Mapping for 3D Globe
 const COUNTRY_COORDS = {
   // Asia
-  'Pakistan': { x: 70, y: 38 },
-  'United Arab Emirates': { x: 64, y: 45 },
-  'India': { x: 72, y: 45 },
-  'Saudi Arabia': { x: 62, y: 48 },
-  'Qatar': { x: 64, y: 44 },
-  'China': { x: 80, y: 35 },
-  'Japan': { x: 90, y: 35 },
+  'Pakistan': [30.3753, 69.3451],
+  'United Arab Emirates': [23.4241, 53.8478],
+  'India': [20.5937, 78.9629],
+  'Saudi Arabia': [23.8859, 45.0792],
+  'Qatar': [25.3548, 51.1839],
+  'China': [35.8617, 104.1954],
+  'Japan': [36.2048, 138.2529],
+  'South Korea': [35.9078, 127.7669],
+  'Singapore': [1.3521, 103.8198],
+  'Malaysia': [4.2105, 101.9758],
+  'Indonesia': [-0.7893, 113.9213],
+  'Vietnam': [14.0583, 108.2772],
+  'Thailand': [15.8700, 100.9925],
   
   // Americas
-  'USA': { x: 20, y: 40 },
-  'United States': { x: 20, y: 40 },
-  'Canada': { x: 20, y: 25 },
-  'Brazil': { x: 35, y: 70 },
+  'USA': [37.0902, -95.7129],
+  'United States': [37.0902, -95.7129],
+  'Canada': [56.1304, -106.3468],
+  'Brazil': [-14.2350, -51.9253],
+  'Mexico': [23.6345, -102.5528],
+  'Argentina': [-38.4161, -63.6167],
+  'Colombia': [4.5709, -74.2973],
   
   // Europe
-  'United Kingdom': { x: 48, y: 25 },
-  'Germany': { x: 52, y: 28 },
-  'France': { x: 50, y: 32 },
-  'Italy': { x: 53, y: 35 },
+  'United Kingdom': [55.3781, -3.4360],
+  'Germany': [51.1657, 10.4515],
+  'France': [46.2276, 2.2137],
+  'Italy': [41.8719, 12.5674],
+  'Spain': [40.4637, -3.7492],
+  'Netherlands': [52.1326, 5.2913],
+  'Switzerland': [46.8182, 8.2275],
+  'Sweden': [60.1282, 18.6435],
+  'Poland': [51.9194, 19.1451],
   
-  // Others
-  'Australia': { x: 88, y: 75 },
-  'South Africa': { x: 55, y: 80 },
-  'Unknown': { x: 50, y: 50 }
+  // Oceania / Africa
+  'Australia': [-25.2744, 133.7751],
+  'New Zealand': [-40.9006, 174.8860],
+  'South Africa': [-30.5595, 22.9375],
+  'Egypt': [26.8206, 30.8025],
+  'Nigeria': [9.0820, 8.6753],
+  'Kenya': [-1.286389, 36.817223],
+  
+  'Unknown': [0, 0]
+};
+
+// Fallback logic for unmapped countries: Use deterministic hash to generate lat/long
+const getFallbackCoords = (country) => {
+  let hash = 0;
+  for (let i = 0; i < country.length; i++) {
+    hash = country.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  // Latitude: -60 to 60, Longitude: -180 to 180
+  return [
+    (Math.abs(hash) % 120) - 60,
+    (Math.abs(hash * 3) % 360) - 180
+  ];
+};
+
+const GlobeComponent = ({ countryCounts }) => {
+  const globeRef = useRef();
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const containerRef = useRef();
+
+  useEffect(() => {
+    const onResize = () => {
+      if(containerRef.current) {
+        setDimensions({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetWidth
+        });
+      }
+    };
+    
+    // Setup resize listener and trigger initial measure
+    window.addEventListener('resize', onResize);
+    setTimeout(onResize, 50); // slight delay to ensure DOM is painted
+    
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    // Wait for globe to initialize and then set controls
+    if(globeRef.current && dimensions.width > 0) {
+      globeRef.current.controls().autoRotate = true;
+      globeRef.current.controls().autoRotateSpeed = 1.0;
+      globeRef.current.controls().enableZoom = false; // Disable zooming so it doesn't break scroll
+    }
+  }, [dimensions]);
+
+  // Data for glowing pulse rings
+  const ringsData = useMemo(() => {
+    return Object.entries(countryCounts).map(([country, count]) => {
+      const location = COUNTRY_COORDS[country] || getFallbackCoords(country);
+      return {
+        lat: location[0],
+        lng: location[1],
+        maxR: Math.min(3 + (count * 1.5), 15), // Pulsing ring size
+        propagationSpeed: 2,
+        repeatPeriod: 1000,
+      };
+    });
+  }, [countryCounts]);
+
+  return (
+    <div ref={containerRef} style={{ width: '100%', maxWidth: 700, aspectRatio: '1', margin: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+       {typeof window !== 'undefined' && dimensions.width > 0 && (
+         <Globe
+           ref={globeRef}
+           width={dimensions.width}
+           height={dimensions.height}
+           backgroundColor="rgba(0,0,0,0)" // Transparent background
+           globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+           bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+           
+           ringsData={ringsData}
+           ringColor={() => '#00c2cb'}
+           ringMaxRadius="maxR"
+           ringPropagationSpeed="propagationSpeed"
+           ringRepeatPeriod="repeatPeriod"
+
+           labelsData={ringsData}
+           labelLat={d => d.lat}
+           labelLng={d => d.lng}
+           labelDotRadius={0.5}
+           labelColor={() => '#6a35ff'}
+           labelText={() => ''}
+         />
+       )}
+    </div>
+  );
 };
 
 const WorldMap = ({ visits = [] }) => {
-  const countryCounts = visits.reduce((acc, v) => {
-    const c = v.country || 'Unknown';
-    acc[c] = (acc[c] || 0) + 1;
-    return acc;
-  }, {});
+  const countryCounts = useMemo(() => {
+    return visits.reduce((acc, v) => {
+      const c = v.country || 'Unknown';
+      acc[c] = (acc[c] || 0) + 1;
+      return acc;
+    }, {});
+  }, [visits]);
 
   const activeRegions = Object.keys(countryCounts).length;
+  const topCountries = Object.entries(countryCounts).sort((a,b) => b[1] - a[1]).slice(0, 3);
 
   return (
-    <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden p-10">
-      <div className="flex items-center justify-between mb-12">
+    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+      {/* Header Section */}
+      <div className="p-8 md:p-10 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
         <div>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tighter flex items-center gap-3">
-            <Globe className="text-[#6a35ff]" size={28} />
-            Live Global Footprint
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 text-purple-600 mb-4">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Live 3D Tracking</span>
+          </div>
+          <h2 className="text-3xl font-black text-gray-900 tracking-tighter flex items-center gap-3">
+            Global Footprint
           </h2>
-          <p className="text-gray-500 font-medium text-sm mt-1">Real-time visitor distribution and engagement.</p>
+          <p className="text-gray-500 font-medium text-sm mt-2 max-w-md">Real-time visitor distribution, geographic concentration, and active user engagement across the globe.</p>
         </div>
-        <div className="flex gap-10">
-           <div className="text-right">
-              <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Active Regions</div>
-              <div className="text-2xl font-black text-gray-900">{activeRegions}</div>
-           </div>
-           <div className="text-right">
-              <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Recent Visits</div>
-              <div className="text-2xl font-black text-[#6a35ff]">{visits.length}</div>
-           </div>
-        </div>
-      </div>
-
-      {/* The Visual Map Area */}
-      <div className="relative w-full aspect-[21/9] bg-[#f8f9fc] rounded-[2rem] border border-gray-100 overflow-hidden group">
         
-        {/* Radar Sweep Effect */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] aspect-square rounded-full pointer-events-none mix-blend-overlay opacity-50"
-             style={{ 
-               background: 'conic-gradient(from 0deg, transparent 70%, rgba(106,53,255,0.1) 90%, rgba(0,194,203,0.3) 100%)', 
-               animation: 'spin 8s linear infinite' 
-             }}>
-        </div>
-
-        {/* World Map Background Image (Simplified SVG representation) */}
-        <div className="absolute inset-0 opacity-[0.08] pointer-events-none p-12">
-           <svg viewBox="0 0 1000 500" className="w-full h-full fill-current text-gray-400">
-             {/* North America */}
-             <path d="M100,100 Q150,80 200,100 T300,150 L250,250 L100,200 Z" />
-             {/* South America */}
-             <path d="M250,250 Q300,300 350,400 L300,450 L200,350 Z" />
-             {/* Europe/Africa */}
-             <path d="M450,100 Q550,80 600,150 L550,400 L450,450 L400,250 Z" />
-             {/* Asia */}
-             <path d="M600,150 Q750,100 900,150 L850,300 L700,400 L600,250 Z" />
-             {/* Australia */}
-             <path d="M800,350 Q850,380 900,420 L850,450 L750,400 Z" />
-           </svg>
-        </div>
-
-        {/* The Grid Overlay */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
-             style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 0)', backgroundSize: '30px 30px' }}>
-        </div>
-
-        {/* Floating Data Pins */}
-        <div className="relative w-full h-full">
-           {Object.entries(countryCounts).map(([country, count]) => {
-             const coords = COUNTRY_COORDS[country] || COUNTRY_COORDS['Unknown'];
-             const size = Math.min(32 + (count * 2), 80);
-             
-             return (
-               <div 
-                 key={country}
-                 className="absolute group/pin transition-all duration-1000 ease-out"
-                 style={{ left: `${coords.x}%`, top: `${coords.y}%`, transform: 'translate(-50%, -50%)' }}
-               >
-                 {/* Double Ping Effect */}
-                 <div className="absolute inset-0 rounded-full bg-[#6a35ff]/10 animate-ping" style={{ width: size * 1.5, height: size * 1.5, left: -size*0.25, top: -size*0.25 }}></div>
-                 <div className="absolute inset-0 rounded-full bg-[#00c2cb]/10 animate-ping [animation-delay:0.5s]" style={{ width: size * 1.2, height: size * 1.2, left: -size*0.1, top: -size*0.1 }}></div>
-                 
-                 {/* Main Analytics Hub */}
-                 <div 
-                   className="relative rounded-2xl bg-white border-2 border-gray-100 shadow-2xl flex flex-col items-center justify-center transition-all group-hover/pin:scale-110 group-hover/pin:border-[#6a35ff] cursor-help overflow-hidden"
-                   style={{ width: size, height: size }}
-                 >
-                   <div className="text-xs font-black text-gray-900">{count}</div>
-                   <div className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">{country.slice(0, 3)}</div>
-                   {/* Bottom Progress bar based on weight */}
-                   <div className="absolute bottom-0 left-0 h-1 bg-[#6a35ff]" style={{ width: `${(count/visits.length)*100}%` }}></div>
-                 </div>
-
-                 {/* High-End Tooltip */}
-                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 opacity-0 group-hover/pin:opacity-100 transition-all scale-90 group-hover/pin:scale-100 pointer-events-none z-50">
-                    <div className="bg-gray-950 text-white p-5 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] min-w-[180px] border border-white/10">
-                       <div className="flex items-center justify-between mb-3">
-                          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Target Audience</span>
-                          <span className="px-2 py-0.5 bg-white/10 rounded text-[8px] font-bold text-[#00c2cb]">LIVE</span>
-                       </div>
-                       <div className="text-sm font-black mb-1">{country}</div>
-                       <div className="flex items-center gap-2">
-                          <div className="text-lg font-black text-[#6a35ff]">{count}</div>
-                          <div className="text-[10px] font-bold text-white/40">Recent Visits</div>
-                       </div>
-                    </div>
-                    <div className="w-4 h-4 bg-gray-950 rotate-45 mx-auto -mt-2 border-r border-b border-white/10"></div>
-                 </div>
-               </div>
-             );
-           })}
-        </div>
-
-        {/* Legend */}
-        <div className="absolute bottom-8 left-8 flex items-center gap-8">
-           <div className="flex items-center gap-3 px-5 py-2.5 bg-white shadow-xl rounded-full border border-gray-50">
-              <span className="w-2 h-2 rounded-full bg-[#6a35ff] animate-pulse"></span>
-              <span className="text-[9px] font-black uppercase tracking-widest text-gray-900">Tracking Active</span>
+        <div className="flex gap-4 md:gap-8">
+           <div className="p-5 rounded-2xl bg-gray-50 border border-gray-100 min-w-[140px]">
+              <div className="flex items-center gap-2 text-gray-400 mb-2">
+                <MapPin size={16} />
+                <div className="text-[10px] font-black uppercase tracking-widest">Active Regions</div>
+              </div>
+              <div className="text-3xl font-black text-gray-900">{activeRegions}</div>
            </div>
-           <div className="flex gap-4">
-              {['Asia', 'Americas', 'Europe'].map(r => (
-                <span key={r} className="text-[8px] font-black text-gray-300 uppercase tracking-[0.2em]">{r}</span>
-              ))}
+           <div className="p-5 rounded-2xl bg-purple-50 border border-purple-100 min-w-[140px]">
+              <div className="flex items-center gap-2 text-purple-600 mb-2">
+                <Users size={16} />
+                <div className="text-[10px] font-black uppercase tracking-widest">Recent Visits</div>
+              </div>
+              <div className="text-3xl font-black text-[#6a35ff]">{visits.length}</div>
            </div>
         </div>
       </div>
 
-      {/* Analytics Insight Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-         {Object.entries(countryCounts).sort((a,b) => b[1] - a[1]).slice(0, 3).map(([country, count]) => (
-            <div key={country} className="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 flex flex-col gap-6 group hover:bg-white hover:shadow-2xl hover:-translate-y-1 transition-all">
-               <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-[#6a35ff] group-hover:bg-[#6a35ff] group-hover:text-white transition-all">
-                     <Navigation size={20} />
-                  </div>
-                  <div className="text-3xl font-black text-gray-900">{count}</div>
-               </div>
-               <div>
-                  <div className="text-sm font-black text-gray-900 mb-1">{country}</div>
-                  <div className="flex items-center justify-between">
-                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Share of Traffic</div>
-                     <div className="text-[10px] font-black text-[#00c2cb]">{Math.round((count/visits.length)*100)}%</div>
-                  </div>
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full mt-3 overflow-hidden">
-                     <div className="h-full bg-gradient-to-r from-[#6a35ff] to-[#00c2cb]" style={{ width: `${(count/visits.length)*100}%` }}></div>
-                  </div>
-               </div>
-            </div>
-         ))}
+      {/* The Visual Map Area - High-Fidelity 3D Globe */}
+      <div className="relative w-full bg-[#0a0a0b] overflow-hidden group border-b border-gray-100 py-10 cursor-move">
+        {/* Dynamic Grid Background */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none" 
+             style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
+        </div>
+
+        {/* Central Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#00c2cb]/10 blur-[120px] rounded-full pointer-events-none"></div>
+
+        {/* The 3D Globe */}
+        <div className="relative z-10 w-full flex justify-center items-center pointer-events-auto">
+          <GlobeComponent countryCounts={countryCounts} />
+        </div>
+      </div>
+
+      {/* Analytics Insight Grid - Clean Footer */}
+      <div className="p-8 md:p-10 bg-white">
+        <h3 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
+          <Activity size={16} /> Top Performing Regions
+        </h3>
+        
+        {topCountries.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {topCountries.map(([country, count], index) => {
+              const percentage = Math.round((count/visits.length)*100) || 1;
+              return (
+                <div key={country} className="p-6 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col hover:bg-white hover:border-[#6a35ff]/30 hover:shadow-xl transition-all duration-300 group">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-sm text-gray-400 group-hover:text-[#6a35ff] font-black text-xs transition-colors">
+                        #{index + 1}
+                      </div>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-[#00c2cb] bg-[#00c2cb]/10 px-2 py-1 rounded">
+                        {percentage}% Traffic
+                      </div>
+                    </div>
+                    
+                    <div className="text-2xl font-black text-gray-900 mb-1 truncate">{country}</div>
+                    <div className="text-sm font-bold text-gray-500 mb-4">{count} Active Sessions</div>
+                    
+                    <div className="mt-auto w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#6a35ff] to-[#00c2cb] rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                    </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-10 text-center bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
+            <GlobeIcon className="mx-auto text-gray-300 mb-3" size={32} />
+            <div className="text-sm font-bold text-gray-500">Waiting for global traffic data...</div>
+          </div>
+        )}
       </div>
     </div>
   );

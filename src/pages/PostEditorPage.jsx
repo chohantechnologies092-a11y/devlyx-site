@@ -60,7 +60,11 @@ const PostEditorPage = () => {
     coverImage: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072',
     readingTime: '5 min read',
     excerpt: '',
-    content: ''
+    content: '',
+    metaTitle: '',
+    metaDescription: '',
+    tags: '',
+    canonicalUrl: ''
   });
 
   const editor = useEditor({
@@ -82,7 +86,7 @@ const PostEditorPage = () => {
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-[#6a35ff] underline font-bold',
+          class: 'text-[#6a35ff] underline font-bold cursor-pointer hover:text-[#00c2cb] transition-colors',
         },
       }),
       TextAlign.configure({
@@ -361,6 +365,16 @@ const PostEditorPage = () => {
                     <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`p-3 rounded-xl transition-all ${editor.isActive({ textAlign: 'left' }) ? 'bg-purple-50 text-[#6a35ff]' : 'text-gray-400 hover:bg-gray-50'}`}><AlignLeft size={18}/></button>
                     <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`p-3 rounded-xl transition-all ${editor.isActive({ textAlign: 'center' }) ? 'bg-purple-50 text-[#6a35ff]' : 'text-gray-400 hover:bg-gray-50'}`}><AlignCenter size={18}/></button>
                     <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`p-3 rounded-xl transition-all ${editor.isActive({ textAlign: 'right' }) ? 'bg-purple-50 text-[#6a35ff]' : 'text-gray-400 hover:bg-gray-50'}`}><AlignRight size={18}/></button>
+                    <button onClick={() => {
+                        const url = window.prompt('Enter URL:');
+                        if (url) {
+                          editor.chain().focus().setLink({ href: url }).run();
+                        } else if (url === '') {
+                          editor.chain().focus().unsetLink().run();
+                        }
+                      }} 
+                      className={`p-3 rounded-xl transition-all ${editor.isActive('link') ? 'bg-purple-50 text-[#6a35ff]' : 'text-gray-400 hover:bg-gray-50'}`}
+                    ><LinkIcon size={18}/></button>
                     <div className="w-[1px] h-6 bg-gray-100 mx-1" />
                     <label className="p-3 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-cyan-500 transition-all cursor-pointer">
                       {saving ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18}/>}
@@ -480,13 +494,68 @@ const PostEditorPage = () => {
               {/* Excerpt */}
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                  <Type size={12} className="text-emerald-500" /> SEO Excerpt
+                  <Type size={12} className="text-emerald-500" /> SEO Excerpt / Summary
                 </label>
                 <textarea 
                   value={formData.excerpt}
                   onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                  className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-600 focus:outline-none focus:border-[#6a35ff] transition-all min-h-[120px] resize-none"
-                  placeholder="Summary for search results..."
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-600 focus:outline-none focus:border-[#6a35ff] transition-all min-h-[100px] resize-none"
+                  placeholder="Summary for blog card..."
+                />
+              </div>
+
+              {/* Meta Title */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                  <Type size={12} className="text-purple-500" /> Meta Title (SEO)
+                </label>
+                <input 
+                  type="text" 
+                  value={formData.metaTitle}
+                  onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#6a35ff] transition-all"
+                  placeholder="Optional: Custom SEO Title"
+                />
+              </div>
+
+              {/* Meta Description */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                  <Type size={12} className="text-blue-500" /> Meta Description (SEO)
+                </label>
+                <textarea 
+                  value={formData.metaDescription}
+                  onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-600 focus:outline-none focus:border-[#6a35ff] transition-all min-h-[100px] resize-none"
+                  placeholder="Optimized snippet for search results..."
+                />
+              </div>
+
+              {/* Tags */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                  <Tag size={12} className="text-[#00c2cb]" /> Keywords / Tags
+                </label>
+                <input 
+                  type="text" 
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#6a35ff] transition-all"
+                  placeholder="React, Next.js, Web (comma separated)"
+                />
+              </div>
+
+              {/* Canonical Link */}
+              <div className="space-y-3 pb-8">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                  <LinkIcon size={12} className="text-gray-500" /> Canonical URL (AEO/SEO)
+                </label>
+                <input 
+                  type="url" 
+                  value={formData.canonicalUrl}
+                  onChange={(e) => setFormData({ ...formData, canonicalUrl: e.target.value })}
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl text-[11px] font-bold text-gray-900 focus:outline-none focus:border-[#6a35ff] transition-all"
+                  placeholder="https://example.com/original-post"
                 />
               </div>
             </div>

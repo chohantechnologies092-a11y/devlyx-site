@@ -79,5 +79,12 @@ service cloud.firestore {
         allow read, write: if true;
       }
     }
+
+    // 10. Clients
+    // Anyone can read clients, but only Admin can write (create/update/delete)
+    match /clients/{clientId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

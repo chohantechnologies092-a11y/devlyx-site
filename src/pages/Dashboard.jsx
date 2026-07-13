@@ -47,6 +47,7 @@ import {
 import WorldMap from '../components/WorldMap';
 import { sitemapService } from '../services/sitemapService';
 import { chatService } from '../services/chatService';
+import ClientsDashboardPage from './ClientsDashboardPage';
 
 import { useDashboardTheme } from '../hooks/useDashboardTheme';
 import { teamService, ROLES } from '../services/teamService';
@@ -58,6 +59,7 @@ export const ThemeCtx = React.createContext({ dark: false, t: {} });
 // All nav items — filtered by role
 const ALL_NAV = [
   { id: 'overview',     name: 'Overview',     icon: LayoutDashboard },
+  { id: 'clients',      name: 'Clients',      icon: Briefcase },
   { id: 'projects',     name: 'Portfolio',    icon: Layers },
   { id: 'posts',        name: 'Articles',     icon: FileText },
   { id: 'support',      name: 'Live Support', icon: MessageCircle },
@@ -70,6 +72,7 @@ const ALL_NAV = [
 
 const NAV_PATHS = {
   overview: '/dashboard',
+  clients: '/dashboard/clients',
   projects: '/dashboard/projects',
   posts: '/dashboard/posts',
   support: '/dashboard/support',
@@ -85,6 +88,7 @@ const DashboardLayout = ({ children, activeTab, user }) => {
   const navigate = useNavigate();
   const { dark, toggle, t } = useDashboardTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [userRole, setUserRole] = useState('super_admin');
 
   useEffect(() => {
@@ -101,31 +105,35 @@ const DashboardLayout = ({ children, activeTab, user }) => {
     navigate('/login');
   };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+  const SidebarContent = ({ collapsed }) => (
+    <div className="flex flex-col h-full overflow-hidden transition-all duration-300 w-full">
       {/* Logo */}
-      <div className="px-8 py-7 border-b flex-shrink-0" style={{ borderColor: t.cardBorder }}>
-        <Link to="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6a35ff] to-[#00c2cb] flex items-center justify-center text-white font-black text-sm">D</div>
-          <div>
-            <div className="text-base font-black tracking-tighter" style={{ color: t.text }}>DEVLYX</div>
-            <div className="text-[8px] uppercase tracking-[0.2em] font-bold" style={{ color: '#00c2cb' }}>Admin Panel</div>
-          </div>
+      <div className={`py-7 border-b flex-shrink-0 flex items-center transition-all ${collapsed ? 'justify-center px-4' : 'justify-start px-8'}`} style={{ borderColor: t.cardBorder }}>
+        <Link to="/" className="flex items-center gap-3" title="Home">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6a35ff] to-[#00c2cb] flex items-center justify-center text-white font-black text-sm flex-shrink-0">D</div>
+          {!collapsed && (
+            <div className="animate-in fade-in zoom-in duration-300">
+              <div className="text-base font-black tracking-tighter whitespace-nowrap" style={{ color: t.text }}>DEVLYX</div>
+              <div className="text-[8px] uppercase tracking-[0.2em] font-bold whitespace-nowrap" style={{ color: '#00c2cb' }}>Admin Panel</div>
+            </div>
+          )}
         </Link>
       </div>
 
       {/* Role badge */}
-      <div className="px-6 pt-5 pb-2">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl w-fit" style={{ background: `${t.hover}` }}>
-          <Shield size={10} style={{ color: '#6a35ff' }} />
-          <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6a35ff' }}>
-            {ROLES[userRole]?.label || 'Admin'}
-          </span>
+      {!collapsed && (
+        <div className="px-6 pt-5 pb-2 transition-all animate-in fade-in duration-300">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl w-fit" style={{ background: `${t.hover}` }}>
+            <Shield size={10} style={{ color: '#6a35ff' }} />
+            <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: '#6a35ff' }}>
+              {ROLES[userRole]?.label || 'Admin'}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Nav */}
-      <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
+      <nav className={`flex-1 ${collapsed ? 'px-3 mt-4' : 'px-4 mt-2'} py-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar transition-all duration-300`}>
         {navItems.map(item => {
           const isActive = activeTab === item.id;
           return (
@@ -133,7 +141,8 @@ const DashboardLayout = ({ children, activeTab, user }) => {
               key={item.id}
               to={NAV_PATHS[item.id]}
               onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-4 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-150"
+              title={collapsed ? item.name : ''}
+              className={`flex items-center ${collapsed ? 'justify-center px-0 py-4' : 'gap-4 px-5 py-3.5'} rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-200`}
               style={{
                 background: isActive ? '#6a35ff' : 'transparent',
                 color: isActive ? '#fff' : t.textMuted,
@@ -142,39 +151,43 @@ const DashboardLayout = ({ children, activeTab, user }) => {
               onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = t.hover; e.currentTarget.style.color = t.text; }}
               onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = t.textMuted; }}}
             >
-              <item.icon size={17} />
-              {item.name}
+              <item.icon size={17} className="flex-shrink-0" />
+              {!collapsed && <span className="whitespace-nowrap">{item.name}</span>}
             </Link>
           );
         })}
       </nav>
 
       {/* User + Logout */}
-      <div className="p-4 border-t flex-shrink-0" style={{ borderColor: t.cardBorder }}>
-        <div className="flex items-center gap-3 px-3 py-3 rounded-2xl mb-2" style={{ background: t.hover }}>
+      <div className={`p-4 border-t flex-shrink-0 flex flex-col gap-2 transition-all duration-300 ${collapsed ? 'items-center px-2' : ''}`} style={{ borderColor: t.cardBorder }}>
+        <div className={`flex items-center gap-3 ${collapsed ? 'px-0 py-2 justify-center' : 'px-3 py-3'} rounded-2xl w-full transition-all`} style={{ background: t.hover }} title={user?.email}>
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6a35ff] to-[#8b5cf6] flex items-center justify-center text-white font-black text-sm flex-shrink-0">
             {user?.email?.charAt(0).toUpperCase()}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-tight truncate" style={{ color: t.text }}>{user?.email?.split('@')[0]}</div>
-            <div className="text-[8px] font-bold uppercase tracking-widest truncate" style={{ color: t.textMuted }}>{user?.email}</div>
-          </div>
+          {!collapsed && (
+            <div className="flex-1 min-w-0 animate-in fade-in duration-300">
+              <div className="text-[10px] font-black uppercase tracking-tight truncate whitespace-nowrap" style={{ color: t.text }}>{user?.email?.split('@')[0]}</div>
+              <div className="text-[8px] font-bold uppercase tracking-widest truncate whitespace-nowrap" style={{ color: t.textMuted }}>{user?.email}</div>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 w-full transition-all duration-300 ${collapsed ? 'flex-col' : ''}`}>
           <button
             onClick={toggle}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+            title="Toggle Theme"
+            className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all w-full`}
             style={{ background: t.hover, color: t.textMuted }}
           >
-            {dark ? <Sun size={14} /> : <Moon size={14} />}
-            {dark ? 'Light' : 'Dark'}
+            {dark ? <Sun size={14} className="flex-shrink-0" /> : <Moon size={14} className="flex-shrink-0" />}
+            {!collapsed && (dark ? 'Light' : 'Dark')}
           </button>
           <button
             onClick={handleLogout}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 transition-all"
+            title="Logout"
+            className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 transition-all w-full`}
           >
-            <LogOut size={14} />
-            Logout
+            <LogOut size={14} className="flex-shrink-0" />
+            {!collapsed && 'Logout'}
           </button>
         </div>
       </div>
@@ -191,10 +204,10 @@ const DashboardLayout = ({ children, activeTab, user }) => {
 
         {/* Desktop Sidebar */}
         <aside
-          className="w-64 fixed h-full z-30 hidden lg:flex flex-col border-r transition-colors duration-200"
+          className={`${isCollapsed ? 'w-[88px]' : 'w-64'} fixed h-full z-30 hidden lg:flex flex-col border-r transition-all duration-300 ease-in-out`}
           style={{ background: t.sidebar, borderColor: t.cardBorder }}
         >
-          <SidebarContent />
+          <SidebarContent collapsed={isCollapsed} />
         </aside>
 
         {/* Mobile Sidebar Overlay */}
@@ -209,39 +222,47 @@ const DashboardLayout = ({ children, activeTab, user }) => {
               <motion.aside
                 initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-                className="fixed left-0 top-0 h-full w-72 z-50 flex flex-col lg:hidden border-r"
+                className="fixed left-0 top-0 h-full w-72 z-50 flex flex-col lg:hidden border-r shadow-2xl"
                 style={{ background: t.sidebar, borderColor: t.cardBorder }}
               >
-                <SidebarContent />
+                <SidebarContent collapsed={false} />
               </motion.aside>
             </>
           )}
         </AnimatePresence>
 
         {/* Main */}
-        <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-[88px]' : 'lg:ml-64'} flex flex-col min-h-screen w-full overflow-x-hidden`}>
           {/* Top Bar */}
           <header
-            className="sticky top-0 z-20 px-6 py-4 border-b flex items-center gap-4 backdrop-blur-sm transition-colors duration-200"
+            className="sticky top-0 z-20 px-4 md:px-6 py-4 border-b flex items-center gap-3 backdrop-blur-sm transition-colors duration-200"
             style={{ background: `${t.sidebar}e8`, borderColor: t.cardBorder }}
           >
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl transition-colors"
+              className="lg:hidden p-2 rounded-xl transition-colors shrink-0"
               style={{ background: t.hover }}
             >
               <Menu size={20} style={{ color: t.textMuted }} />
             </button>
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="hidden lg:flex p-2 rounded-xl transition-colors shrink-0"
+              style={{ background: t.hover }}
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <Menu size={20} style={{ color: t.textMuted }} />
+            </button>
 
-            <div className="flex-1">
-              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>
+            <div className="flex-1 min-w-0">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest truncate block" style={{ color: t.textMuted }}>
                 {navItems.find(n => n.id === activeTab)?.name || 'Dashboard'}
               </span>
             </div>
 
             <button
               onClick={toggle}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shrink-0"
               style={{ background: t.hover, color: t.textMuted }}
             >
               {dark ? <Sun size={14} /> : <Moon size={14} />}
@@ -1857,6 +1878,11 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+        </DashboardLayout>
+      } />
+      <Route path="/clients" element={
+        <DashboardLayout activeTab="clients" user={user}>
+          <ClientsDashboardPage />
         </DashboardLayout>
       } />
       <Route path="/leads" element={

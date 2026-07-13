@@ -30,9 +30,20 @@ const ContactPage = lazy(() => import('./pages/ContactPage'));
 
 // Premium Loading Component
 const PageLoader = () => (
-  <div className="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center">
-    <div className="w-16 h-16 border-4 border-gray-100 border-t-[#6a35ff] rounded-full animate-spin mb-4"></div>
-    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 animate-pulse">Devlyx Solutions</div>
+  <div className="fixed inset-0 bg-[#0a0a0b] z-[9999] flex flex-col items-center justify-center">
+    {/* Logo */}
+    <img src="/devlyxsol-01.webp" alt="Devlyx Solutions" className="w-32 md:w-40 h-auto mb-10 filter brightness-0 invert opacity-90 animate-pulse" />
+    
+    {/* Spinner */}
+    <div className="relative flex items-center justify-center">
+      <div className="w-16 h-16 border-[3px] border-white/5 border-t-[#6a35ff] border-r-[#00c2cb] rounded-full animate-spin"></div>
+      <div className="absolute inset-0 w-16 h-16 border-[3px] border-transparent border-b-[#6a35ff] border-l-[#00c2cb] rounded-full animate-[spin_1.5s_linear_infinite_reverse]"></div>
+      <div className="absolute w-10 h-10 bg-gradient-to-tr from-[#6a35ff] to-[#00c2cb] blur-xl opacity-40 animate-pulse"></div>
+    </div>
+    
+    <div className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] text-white/60">
+      Initializing...
+    </div>
   </div>
 );
 

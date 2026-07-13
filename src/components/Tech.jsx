@@ -44,6 +44,7 @@ const Tech = () => {
 
     const row2 = [
         { name: 'Flutter', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flutter/flutter-original.svg', color: '#02569b' },
+        { name: 'Shopify', url: 'https://www.vectorlogo.zone/logos/shopify/shopify-icon.svg', color: '#95bf47' },
         { name: 'MongoDB', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg', color: '#47a248' },
         { name: 'OpenAI', url: '/img/openai.svg', invertCSS: true, color: '#10a37f' },
         { name: 'Stripe', url: '/img/Stripe_Logo2-01.svg', invertCSS: true, color: '#eeeeeeff' },
@@ -209,7 +210,7 @@ const Tech = () => {
 
             {/* Background Orbs & Gradients */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none select-none z-0 opacity-[0.04] mt-10">
-                <img src="/devlyxsol-01.png" alt="" className="w-[800px] md:w-[1200px] h-auto filter grayscale" />
+                <img src="/devlyxsol-01.webp" alt="" loading="lazy" decoding="async" className="w-[800px] md:w-[1200px] h-auto filter grayscale" />
             </div>
             <div className="absolute top-[-5%] right-[-10%] w-[600px] h-[600px] bg-[#6a35ff]/5 blur-[150px] rounded-full opacity-40"></div>
             <div className="absolute bottom-[-5%] left-[-10%] w-[600px] h-[600px] bg-[#00c2cb]/5 blur-[150px] rounded-full opacity-40"></div>
@@ -299,7 +300,7 @@ const Tech = () => {
 
                         <div className="absolute z-30 w-28 h-28 md:w-36 md:h-36 bg-[#0a0a0c] rounded-full flex items-center justify-center p-1 border border-white/5 shadow-[0_0_100px_rgba(106,53,255,0.3)] backdrop-blur-3xl overflow-hidden group">
                             <div className="absolute inset-0 bg-gradient-to-tr from-[#6a35ff]/20 to-[#00c2cb]/20 animate-spin-slow"></div>
-                            <img src="/devlyxsol-01.png" className="w-14 md:w-20 h-auto filter brightness-0 invert relative z-10 transition-transform group-hover:scale-110 duration-700" alt="Core" />
+                            <img src="/devlyxsol-01.webp" loading="lazy" decoding="async" className="w-14 md:w-20 h-auto filter brightness-0 invert relative z-10 transition-transform group-hover:scale-110 duration-700" alt="Core" />
                         </div>
 
                         {/* Outer Orbit (row2) */}
@@ -452,27 +453,27 @@ const Tech = () => {
                         </div>
                     </div>
 
-                    {/* Bento Module 5b: WordPress (Span 4) */}
-                    <div className="md:col-span-4 tech-reveal group p-10 rounded-[3.5rem] bg-[#21759b]/5 border border-white/5 hover:border-[#21759b]/50 transition-all duration-700 relative overflow-hidden glass-card hover:-translate-y-3">
+                    {/* Bento Module 5b: E-Commerce (Span 4) */}
+                    <div className="md:col-span-4 tech-reveal group p-10 rounded-[3.5rem] bg-[#95bf47]/5 border border-white/5 hover:border-[#95bf47]/50 transition-all duration-700 relative overflow-hidden glass-card hover:-translate-y-3">
                         <div className="absolute top-1/2 left-0 -translate-y-1/2 text-[90px] font-black text-white/[0.02] select-none pointer-events-none uppercase tracking-tighter">Web</div>
                         <div className="relative z-10 h-full flex flex-col justify-between">
                             <div>
                                 <div className="flex gap-4 mb-8 items-center">
-                                    <div className="w-16 h-16 rounded-2xl bg-white/[0.03] flex items-center justify-center p-4 border border-white/5 group-hover:bg-[#21759b]/20 transition-all">
-                                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/wordpress/wordpress-plain.svg" className="w-10 h-10 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="WordPress" />
+                                    <div className="w-16 h-16 rounded-2xl bg-white/[0.03] flex items-center justify-center p-4 border border-white/5 group-hover:bg-[#95bf47]/20 transition-all">
+                                        <img src="https://www.vectorlogo.zone/logos/shopify/shopify-icon.svg" className="w-10 h-10 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="Shopify" />
                                     </div>
                                     <div className="w-14 h-14 rounded-2xl bg-white/[0.03] flex items-center justify-center p-3 border border-white/5 group-hover:bg-[#21759b]/10 transition-all">
-                                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/woocommerce/woocommerce-original.svg" className="w-9 h-9 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="WooCommerce" />
+                                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/wordpress/wordpress-plain.svg" className="w-9 h-9 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="WordPress" />
                                     </div>
                                 </div>
-                                <h4 className="text-2xl font-black text-white mb-4">WordPress & WooCommerce</h4>
+                                <h4 className="text-2xl font-black text-white mb-4">E-Commerce Mastery</h4>
                                 <p className="text-gray-500 text-sm leading-relaxed font-light">
-                                    Custom themes, plugins, and WooCommerce stores — fully optimized for performance, SEO, and conversion.
+                                    Custom Shopify apps, private integrations, and scalable WooCommerce stores optimized for conversion.
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-2 mt-6">
-                                <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[9px] font-bold text-gray-500 uppercase tracking-wider group-hover:text-[#21759b] transition-all">Custom_Themes</span>
-                                <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[9px] font-bold text-gray-500 uppercase tracking-wider group-hover:text-[#21759b] transition-all">E-Commerce</span>
+                                <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[9px] font-bold text-gray-500 uppercase tracking-wider group-hover:text-[#95bf47] transition-all">Shopify_Apps</span>
+                                <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[9px] font-bold text-gray-500 uppercase tracking-wider group-hover:text-[#95bf47] transition-all">WooCommerce</span>
                             </div>
                         </div>
                     </div>

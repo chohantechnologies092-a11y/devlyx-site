@@ -68,6 +68,20 @@ const Services = () => {
             )
         },
         {
+            title: 'Shopify Ecosystems',
+            subtitle: 'E-Commerce & Apps',
+            href: '/services/shopify-development/uae',
+            description: 'Building high-converting Shopify stores and custom private/public apps to supercharge your e-commerce operations.',
+            points: ['Custom Theme Dev', 'Shopify App Dev', 'API Integrations', 'Store Optimization'],
+            color: '#95bf47',
+            icon: (
+                <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10" stroke="currentColor">
+                    <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M9 11v2m6-2v2" strokeWidth="1" strokeLinecap="round" />
+                </svg>
+            )
+        },
+        {
             title: 'SEO & Growth Architecture',
             subtitle: 'Data-Driven Visibility',
             href: '/services/seo-growth/uae',

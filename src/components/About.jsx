@@ -69,8 +69,10 @@ const About = () => {
                         className="lg:col-span-8 h-[350px] md:h-[500px] rounded-[2rem] overflow-hidden relative group shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-gray-100"
                     >
                         <img
-                            src="/about-tech.png"
+                            src="/about-tech.webp"
                             alt="Devlyx Engineering Setup"
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s] ease-out"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-gray-950/20 to-transparent" />
@@ -79,10 +81,6 @@ const About = () => {
                             <div>
                                 <h3 className="text-white font-black text-2xl md:text-3xl mb-1">Global HQ</h3>
                                 <p className="text-white/80 text-sm font-medium">Where innovation happens daily.</p>
-                            </div>
-                            <div className="hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
-                                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                                <span className="text-white text-[10px] font-black uppercase tracking-widest">Online</span>
                             </div>
                         </div>
                     </motion.div>

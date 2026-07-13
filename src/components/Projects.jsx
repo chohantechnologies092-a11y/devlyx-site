@@ -187,7 +187,7 @@ const Projects = () => {
                             <div className="relative w-full max-w-[240px] md:max-w-[260px] aspect-[1/2.16] bg-[#111111] rounded-[2rem] md:rounded-[2.5rem] border-[8px] md:border-[10px] border-[#4c4949] shadow-2xl overflow-hidden transform lg:-rotate-2 group-hover:rotate-0 group-hover:scale-105 transition-all duration-[1s] ease-out">
                                 <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 md:w-20 h-4 md:h-5 bg-[#4c4949] rounded-full z-30"></div>
                                 {(flagshipProject.mockupImage || flagshipProject.image) ? (
-                                    <img src={flagshipProject.mockupImage || flagshipProject.image} className="w-full h-full object-cover object-top opacity-90 group-hover:opacity-100 transition-opacity duration-700" alt={flagshipProject.title} />
+                                    <img src={flagshipProject.mockupImage || flagshipProject.image} className="w-full h-full object-cover object-top opacity-100 transition-opacity duration-700" alt={flagshipProject.title} />
                                 ) : (
                                     <div
                                         className="w-full h-full"

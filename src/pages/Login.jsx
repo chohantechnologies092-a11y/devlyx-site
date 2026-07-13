@@ -18,6 +18,7 @@ const Login = () => {
     setError('');
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      localStorage.setItem('devlyx_admin_device', 'true'); // Flag to prevent tracking admin visits
       navigate('/dashboard');
     } catch (err) {
       setError('Invalid email or password. Please try again.');

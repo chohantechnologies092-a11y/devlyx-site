@@ -1,17 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
-import About from '../components/About';
-import Tech from '../components/Tech';
-import Projects from '../components/Projects';
-import Services from '../components/Services';
-import Process from '../components/Process';
-import Testimonials from '../components/Testimonials';
-import Contact from '../components/Contact';
-import Footer from '../components/Footer';
 import SEO from '../components/SEO';
-import Newsletter from '../components/Newsletter';
 import { useLocation } from 'react-router-dom';
+
+const Clients = lazy(() => import('../components/Clients'));
+const About = lazy(() => import('../components/About'));
+const Tech = lazy(() => import('../components/Tech'));
+const Projects = lazy(() => import('../components/Projects'));
+const Services = lazy(() => import('../components/Services'));
+const Process = lazy(() => import('../components/Process'));
+const Testimonials = lazy(() => import('../components/Testimonials'));
+const Contact = lazy(() => import('../components/Contact'));
+const Footer = lazy(() => import('../components/Footer'));
+const Newsletter = lazy(() => import('../components/Newsletter'));
 
 function Home() {
   const location = useLocation();
@@ -77,15 +79,18 @@ function Home() {
       />
       <Navbar />
       <Hero />
-      <About />
-      <Services />
-      <Tech />
-      <Projects />
-      <Process />
-      <Testimonials />
-      <Newsletter />
-      <Contact />
-      <Footer />
+      <Suspense fallback={<div className="min-h-screen w-full bg-[#fcfcfd] animate-pulse"></div>}>
+        <Clients />
+        <About />
+        <Services />
+        <Tech />
+        <Projects />
+        <Process />
+        <Testimonials />
+        <Newsletter />
+        <Contact />
+        <Footer />
+      </Suspense>
     </div>
   );
 }

@@ -96,26 +96,28 @@ const Navbar = () => {
           <div className="hidden md:block w-[1px] h-6 bg-white/10" style={scrolled ? { backgroundColor: 'rgba(0,0,0,0.1)' } : {}}></div>
 
           {/* Call To Action with hover glow */}
-          <Link to="/start-project" className={`hidden md:flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 shadow-md ${
-            scrolled 
-              ? 'bg-gray-900 text-white hover:bg-[#6a35ff] hover:shadow-[0_0_20px_rgba(106,53,255,0.4)] hover:-translate-y-0.5' 
-              : 'bg-white text-gray-900 hover:bg-[#6a35ff] hover:text-white hover:shadow-[0_0_20px_rgba(106,53,255,0.4)] hover:-translate-y-0.5'
-          }`}>
-            Start Project
-          </Link>
+          <div className="flex items-center gap-2 md:gap-4">
+            <Link to="/start-project" className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-500 shadow-md ${
+              scrolled 
+                ? 'bg-[#6a35ff] text-white hover:shadow-[0_0_20px_rgba(106,53,255,0.4)] hover:-translate-y-0.5' 
+                : 'bg-white text-gray-900 hover:bg-[#6a35ff] hover:text-white hover:shadow-[0_0_20px_rgba(106,53,255,0.4)] hover:-translate-y-0.5'
+            }`}>
+              Start Project
+            </Link>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden w-10 h-10 rounded-full flex items-center justify-center border border-white/20 hover:bg-white/10 transition-colors"
-            style={scrolled ? { borderColor: 'rgba(0,0,0,0.1)', color: '#111' } : { color: '#fff' }}
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            <div className="flex flex-col gap-1.5">
-              <span className={`block w-4 h-0.5 bg-current transition-all ${isOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
-              <span className={`block w-4 h-0.5 bg-current transition-all ${isOpen ? 'opacity-0' : ''}`}></span>
-              <span className={`block w-4 h-0.5 bg-current transition-all ${isOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
-            </div>
-          </button>
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden w-10 h-10 rounded-full flex items-center justify-center border border-white/20 hover:bg-white/10 transition-colors"
+              style={scrolled ? { borderColor: 'rgba(0,0,0,0.1)', color: '#111' } : { color: '#fff' }}
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              <div className="flex flex-col gap-1.5">
+                <span className={`block w-4 h-0.5 bg-current transition-all ${isOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+                <span className={`block w-4 h-0.5 bg-current transition-all ${isOpen ? 'opacity-0' : ''}`}></span>
+                <span className={`block w-4 h-0.5 bg-current transition-all ${isOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+              </div>
+            </button>
+          </div>
         </nav>
 
         {/* Mobile Menu */}

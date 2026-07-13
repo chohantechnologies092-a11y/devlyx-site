@@ -195,7 +195,12 @@ const Hero = () => {
     const slide = slides[currentSlide];
 
     const renderCtaButtons = (extraClass = "") => (
-        <div className={`inline-flex flex-col sm:flex-row items-center gap-2 bg-white/75 backdrop-blur-xl p-2 rounded-[24px] border border-gray-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.06)] w-full sm:w-auto max-w-md sm:max-w-none ${extraClass}`}>
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className={`inline-flex flex-col sm:flex-row items-center gap-2 bg-white/75 backdrop-blur-xl p-2 rounded-[24px] border border-gray-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.06)] w-full sm:w-auto max-w-md sm:max-w-none ${extraClass}`}
+        >
             <Link to="/start-project" className="w-full sm:w-auto block sm:inline-block">
                 <button 
                     className="group relative w-full sm:w-auto bg-gray-950 text-white px-7 py-3.5 rounded-[18px] font-black text-[10px] tracking-[0.2em] transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden shadow-sm"
@@ -234,7 +239,7 @@ const Hero = () => {
                     </span>
                 </div>
             </a>
-        </div>
+        </motion.div>
     );
 
     return (
@@ -323,7 +328,7 @@ const Hero = () => {
                                     {/* Devlyx logo watermark in background */}
                                     <div className="absolute -bottom-8 -right-8 w-64 h-64 pointer-events-none select-none">
                                         <img
-                                            src="/devlyxsol-01.png"
+                                            src="/devlyxsol-01.webp"
                                             alt=""
                                             aria-hidden="true"
                                             className="w-full h-full object-contain"

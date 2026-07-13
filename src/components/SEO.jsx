@@ -22,10 +22,39 @@ const SEO = ({ title, description, image, url, type = 'website', articleData = n
       "addressLocality": "Dubai / Islamabad",
       "addressCountry": "AE/PK"
     },
+    "founder": {
+      "@type": "Person",
+      "name": "Devlyx Leadership"
+    },
+    "knowsAbout": [
+      "Custom Software Development",
+      "Mobile App Development",
+      "Web Application Development",
+      "AI Integration",
+      "Digital Transformation"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+923395129192",
+      "contactType": "customer service",
+      "availableLanguage": ["English", "Urdu", "Arabic"]
+    },
     "sameAs": [
       "https://facebook.com/profile.php?id=61586420621668",
       "https://www.instagram.com/devlyx_solutions/"
     ]
+  };
+
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Devlyx Solutions",
+    "url": "https://devlyxsolutions.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://devlyxsolutions.com/?s={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
   };
 
   const articleSchema = type === 'article' && articleData ? {
@@ -66,6 +95,9 @@ const SEO = ({ title, description, image, url, type = 'website', articleData = n
       {/* Structured Data */}
       <script type="application/ld+json">
         {JSON.stringify(baseSchema)}
+      </script>
+      <script type="application/ld+json">
+        {JSON.stringify(websiteSchema)}
       </script>
       {articleSchema && (
         <script type="application/ld+json">

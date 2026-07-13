@@ -42,6 +42,10 @@ export const statsService = {
 
   // --- Track a full visit with geolocation + device ---
   async trackVisit() {
+    if (localStorage.getItem('devlyx_admin_device') === 'true') {
+      return; // Exclude admin's own device
+    }
+
     const path = window.location.pathname;
     if (path.startsWith('/admin') || path.startsWith('/login') || path.startsWith('/dashboard')) {
       return; // Exclude admin/login/dashboard from analytics
@@ -49,24 +53,24 @@ export const statsService = {
 
     let geo = { country: "Unknown", city: "Unknown", country_code: "" };
     try {
-      // Primary API: ipapi.co
-      let res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(4000) });
+      // Primary API: geojs.io (No rate limits)
+      let res = await fetch("https://get.geojs.io/v1/ip/geo.json", { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         const data = await res.json();
         geo = {
-          country: data.country_name || "Unknown",
+          country: data.country || "Unknown",
           city: data.city || "Unknown",
           country_code: data.country_code || "",
         };
       } else {
-        // Fallback API: ipinfo.io
-        const fallback = await fetch("https://ipinfo.io/json", { signal: AbortSignal.timeout(3000) });
+        // Fallback API: ipwhois.app
+        const fallback = await fetch("https://ipwhois.app/json/", { signal: AbortSignal.timeout(3000) });
         if (fallback.ok) {
           const data = await fallback.json();
           geo = {
             country: data.country || "Unknown",
             city: data.city || "Unknown",
-            country_code: data.country || "",
+            country_code: data.country_code || "",
           };
         }
       }
@@ -106,6 +110,11 @@ export const statsService = {
 
   // --- Track a blog post view ---
   async trackPostView(postId) {
+    if (localStorage.getItem('devlyx_admin_device') === 'true') {
+      return; // Exclude admin's own device
+    }
+    
+    if (!postId) return;
     const postRef = doc(db, "posts", postId);
     await updateDoc(postRef, { views: increment(1) });
   },

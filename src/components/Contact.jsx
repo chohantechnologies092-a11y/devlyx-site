@@ -119,9 +119,14 @@ const Contact = () => {
                                     </div>
 
                                     <textarea rows="4" placeholder="Tell us about your project..." required value={formData.brief} onChange={e => setFormData({...formData, brief: e.target.value})} className="w-full bg-gray-50 border-2 border-gray-100 rounded-[2.5rem] p-8 text-lg font-bold text-gray-900 focus:bg-white focus:border-[#6a35ff]/20 outline-none transition-all resize-none" />
-                                    <button type="submit" disabled={status === 'submitting'} className="w-full py-6 bg-gray-900 text-white rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-[#6a35ff] transition-all">
-                                        {status === 'submitting' ? 'Processing...' : 'Start Journey'}
-                                    </button>
+                                    <div className="space-y-4">
+                                        <button type="submit" disabled={status === 'submitting'} className="w-full py-6 bg-gray-900 text-white rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-[#6a35ff] hover:shadow-[0_0_30px_rgba(106,53,255,0.4)] hover:-translate-y-1 transition-all">
+                                            {status === 'submitting' ? 'Processing...' : 'Start Journey'}
+                                        </button>
+                                        <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                            We'll get back to you within 24 hours.
+                                        </p>
+                                    </div>
                                 </form>
                             )}
                         </div>
