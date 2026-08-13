@@ -15,7 +15,7 @@ const About = () => {
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-[#00c2cb]/5 to-transparent rounded-full blur-[120px] pointer-events-none" />
 
             <div className="container mx-auto max-w-7xl px-4 md:px-6 relative z-10">
-                
+
                 {/* Header Section (Split Layout) */}
                 <div className="flex flex-col lg:flex-row gap-8 lg:gap-20 lg:items-end mb-16 lg:mb-24">
                     <div className="flex-1">
@@ -30,21 +30,21 @@ const About = () => {
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.25em]">Who We Are</span>
                         </motion.div>
 
-                        <motion.h2 
+                        <motion.h2
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true }}
                             variants={fadeInUp}
                             className="text-4xl sm:text-5xl lg:text-[4.5rem] font-black text-gray-950 tracking-tighter leading-[0.95]"
                         >
-                            We engineer <br className="hidden lg:block"/>
+                            We engineer <br className="hidden lg:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#6a35ff] to-[#00c2cb]">
                                 digital excellence.
                             </span>
                         </motion.h2>
                     </div>
-                    
-                    <motion.div 
+
+                    <motion.div
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}
@@ -59,9 +59,9 @@ const About = () => {
 
                 {/* Main Visual & Stats Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-16 lg:mb-24">
-                    
+
                     {/* Image Card (8 cols) */}
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.98 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
@@ -76,18 +76,15 @@ const About = () => {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s] ease-out"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-gray-950/20 to-transparent" />
-                        
+
                         <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 md:right-8 flex justify-between items-end">
-                            <div>
-                                <h3 className="text-white font-black text-2xl md:text-3xl mb-1">Global HQ</h3>
-                                <p className="text-white/80 text-sm font-medium">Where innovation happens daily.</p>
-                            </div>
+
                         </div>
                     </motion.div>
 
                     {/* Stats Column (4 cols) */}
                     <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-6">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
@@ -98,7 +95,7 @@ const About = () => {
                             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Years Mastery</div>
                         </motion.div>
 
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
@@ -113,9 +110,9 @@ const About = () => {
 
                 {/* 3 Value Proposition Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-                    
+
                     {/* Mission */}
-                    <motion.div 
+                    <motion.div
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}
@@ -134,7 +131,7 @@ const About = () => {
                     </motion.div>
 
                     {/* Vision */}
-                    <motion.div 
+                    <motion.div
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}
@@ -154,7 +151,7 @@ const About = () => {
                     </motion.div>
 
                     {/* Approach - Inverted Dark Card for Contrast */}
-                    <motion.div 
+                    <motion.div
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}

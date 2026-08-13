@@ -10,6 +10,7 @@ const ScrollToTop = () => {
 };
 import { HelmetProvider } from 'react-helmet-async';
 import { statsService } from './services/statsService';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load components for performance
 const Home = lazy(() => import('./pages/Home'));
@@ -20,6 +21,7 @@ const Login = lazy(() => import('./pages/Login'));
 const PostEditorPage = lazy(() => import('./pages/PostEditorPage'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const AllProjects = lazy(() => import('./pages/AllProjects'));
+const Products = lazy(() => import('./pages/Products'));
 const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'));
 const StartProject = lazy(() => import('./pages/StartProject'));
 const SoftwareDevelopment = lazy(() => import('./pages/SoftwareDevelopment'));
@@ -48,6 +50,7 @@ const PageLoader = () => (
 );
 
 import ChatBubble from './components/ChatBubble';
+import DexGreeter from './components/DexGreeter';
 
 function App() {
   useEffect(() => {
@@ -75,29 +78,33 @@ function App() {
 
   return (
     <HelmetProvider>
-      <Router>
-        <ScrollToTop />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/projects" element={<AllProjects />} />
-            <Route path="/projects/:slug" element={<ProjectDetail />} />
-            <Route path="/start-project" element={<StartProject />} />
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/services/:type/:region" element={<ServiceDetail />} />
-            <Route path="/services/software-development-uae" element={<SoftwareDevelopment />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard/*" element={<Dashboard />} />
-            <Route path="/dashboard/editor/:id" element={<PostEditorPage />} />
-            <Route path="/dashboard/projects/editor/:id" element={<ProjectEditorPage />} />
-          </Routes>
-          <ChatBubble />
-        </Suspense>
-      </Router>
+      <ErrorBoundary>
+        <Router>
+          <ScrollToTop />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/projects" element={<AllProjects />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/projects/:slug" element={<ProjectDetail />} />
+              <Route path="/start-project" element={<StartProject />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/services/:type/:region" element={<ServiceDetail />} />
+              <Route path="/services/software-development-uae" element={<SoftwareDevelopment />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard/*" element={<Dashboard />} />
+              <Route path="/dashboard/editor/:id" element={<PostEditorPage />} />
+              <Route path="/dashboard/projects/editor/:id" element={<ProjectEditorPage />} />
+            </Routes>
+            <ChatBubble />
+            <DexGreeter />
+          </Suspense>
+        </Router>
+      </ErrorBoundary>
     </HelmetProvider>
   );
 }

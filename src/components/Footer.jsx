@@ -68,8 +68,8 @@ const Footer = () => {
                         <ul className="space-y-4 text-sm font-bold text-gray-500">
                             {[
                                 { name: "Home", path: "/" },
-                                { name: "Identity", path: "/#about" },
-                                { name: "Services", path: "/#services" },
+                                { name: "Identity", path: "/about" },
+                                { name: "Services", path: "/services" },
                                 { name: "Blog", path: "/blog" }
                             ].map((item, idx) => (
                                 <li key={idx}>
@@ -109,9 +109,9 @@ const Footer = () => {
                                     Open for enterprise engineering engagements for Q3 2026.
                                 </p>
                             </div>
-                            <a href="#contact" className="w-full py-3 bg-white text-black text-center text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#00c2cb] hover:text-white transition-all">
+                            <Link to="/contact" className="w-full block py-3 bg-white text-black text-center text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#00c2cb] hover:text-white transition-all">
                                 Start Inquiry
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -122,8 +122,8 @@ const Footer = () => {
                         © {currentYear} Devlyx Solutions. Engineered with Precision.
                     </p>
                     <div className="flex gap-6 text-[9px] font-bold text-gray-600 uppercase tracking-widest">
-                        <span className="hover:text-white cursor-pointer transition-colors">Privacy</span>
-                        <span className="hover:text-white cursor-pointer transition-colors">Terms</span>
+                        <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy</Link>
+                        <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
                     </div>
                 </div>
             </div>

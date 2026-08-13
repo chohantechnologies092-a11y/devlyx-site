@@ -86,5 +86,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // 11. Settings (e.g. About Page)
+    // Anyone can read, but only Admin can write
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

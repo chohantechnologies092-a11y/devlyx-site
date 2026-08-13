@@ -4,6 +4,7 @@ import { ChevronDown, Send } from 'lucide-react';
 
 const Contact = () => {
     const [selectedService, setSelectedService] = useState('Web Applications');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', brief: '' });
     const [status, setStatus] = useState('idle');
 
@@ -109,12 +110,36 @@ const Contact = () => {
                                             <input type="tel" placeholder=" " required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="peer w-full bg-transparent border-b-2 border-gray-100 py-4 text-lg font-black text-gray-900 outline-none focus:border-[#6a35ff] transition-all placeholder-transparent" />
                                             <label className="absolute left-0 top-4 text-gray-400 font-black uppercase tracking-widest text-[10px] transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-focus:top-[-20px] peer-focus:text-[10px] peer-focus:text-[#6a35ff] peer-not-placeholder-shown:top-[-20px] peer-not-placeholder-shown:text-[10px] peer-not-placeholder-shown:text-[#6a35ff]">Mobile Number</label>
                                         </div>
-                                        <div className="relative group">
-                                            <select value={selectedService} onChange={e => setSelectedService(e.target.value)} className="w-full bg-transparent border-b-2 border-gray-100 py-4 text-lg font-black text-gray-900 outline-none focus:border-[#6a35ff] appearance-none cursor-pointer transition-all">
-                                                {services.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
+                                        <div className="relative group z-20">
+                                            <div 
+                                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                                className={`w-full bg-transparent border-b-2 py-4 text-lg font-black text-gray-900 outline-none cursor-pointer transition-all flex justify-between items-center ${isDropdownOpen ? 'border-[#6a35ff]' : 'border-gray-100 hover:border-gray-300'}`}
+                                            >
+                                                <span>{selectedService}</span>
+                                                <ChevronDown size={20} className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-[#6a35ff]' : ''}`} />
+                                            </div>
                                             <label className="absolute left-0 top-[-20px] text-[10px] font-black uppercase tracking-widest text-[#6a35ff]">Interested In</label>
-                                            <div className="absolute right-0 top-4 pointer-events-none text-gray-400"><ChevronDown size={20} /></div>
+                                            
+                                            {/* Custom Dropdown Menu */}
+                                            <div className={`absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden transition-all duration-300 transform origin-top z-50 ${isDropdownOpen ? 'opacity-100 scale-y-100 pointer-events-auto' : 'opacity-0 scale-y-95 pointer-events-none'}`}>
+                                                <div className="max-h-60 overflow-y-auto py-2">
+                                                    {services.map(s => (
+                                                        <div 
+                                                            key={s} 
+                                                            onClick={() => { setSelectedService(s); setIsDropdownOpen(false); }}
+                                                            className={`px-6 py-4 text-sm font-bold cursor-pointer transition-colors flex items-center gap-3 ${selectedService === s ? 'bg-[#6a35ff]/5 text-[#6a35ff]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                                                        >
+                                                            {selectedService === s && <span className="w-1.5 h-1.5 rounded-full bg-[#6a35ff]" />}
+                                                            <span className={selectedService !== s ? "pl-4" : ""}>{s}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Click outside overlay */}
+                                            {isDropdownOpen && (
+                                                <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)}></div>
+                                            )}
                                         </div>
                                     </div>
 

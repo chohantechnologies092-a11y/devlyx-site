@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Sparkles, Bot, ChevronDown, Loader2, RotateCcw 
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatService } from '../services/chatService';
 import { leadService } from '../services/leadService';
+import DexCharacter from './DexCharacter';
 
 // Format message text — bold **text**, newlines, lists
 const FormatText = ({ text }) => {
@@ -158,6 +159,16 @@ const ChatBubble = () => {
     }
   }, [isOpen, sessionId]);
 
+  // Listen for custom event from DexGreeter
+  useEffect(() => {
+    const handleOpenDexChat = () => {
+      setIsOpen(true);
+      setHasUnread(false);
+    };
+    window.addEventListener('open-dex-chat', handleOpenDexChat);
+    return () => window.removeEventListener('open-dex-chat', handleOpenDexChat);
+  }, []);
+
   useEffect(() => {
     if (sessionId) {
       const unsubscribe = chatService.subscribeToMessages(sessionId, (msgs) => {
@@ -242,22 +253,35 @@ const ChatBubble = () => {
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 28, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 28, scale: 0.94 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            className="absolute bottom-20 right-0 w-[380px] flex flex-col overflow-hidden"
-            style={{
-              height: '510px',
-              maxHeight: 'calc(100vh - 110px)',
-              borderRadius: '24px',
-              boxShadow: '0 24px 80px rgba(10, 5, 30, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08)',
-              background: 'rgba(11, 7, 30, 0.93)',
-              backdropFilter: 'blur(20px)'
-            }}
-          >
-            {/* ── Header ── */}
+          <div className="absolute bottom-20 right-0 z-50 flex items-end">
+            
+            {/* Dex Companion (Visible on Desktop) */}
+            <motion.div
+              initial={{ opacity: 0, x: 40, scale: 0.8 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 20, scale: 0.8 }}
+              transition={{ delay: 0.1, type: 'spring' }}
+              className="hidden md:block mr-6 mb-4"
+            >
+              <DexCharacter scale={0.8} />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 28, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 28, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              className="w-[380px] flex flex-col overflow-hidden"
+              style={{
+                height: '510px',
+                maxHeight: 'calc(100vh - 110px)',
+                borderRadius: '24px',
+                boxShadow: '0 24px 80px rgba(10, 5, 30, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+                background: 'rgba(11, 7, 30, 0.93)',
+                backdropFilter: 'blur(20px)'
+              }}
+            >
+              {/* ── Header ── */}
             <div
               className="flex items-center justify-between px-6 py-5 flex-shrink-0 border-b border-white/5 relative"
               style={{ background: 'linear-gradient(135deg, rgba(20, 10, 50, 0.6) 0%, rgba(10, 5, 30, 0.8) 100%)' }}
@@ -439,6 +463,7 @@ const ChatBubble = () => {
               </p>
             </form>
           </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

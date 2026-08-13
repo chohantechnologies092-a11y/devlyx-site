@@ -5,8 +5,10 @@ import { auth } from '../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { 
   ArrowLeft, Save, Loader2, Image as ImageIcon, 
-  Type, Tag, Palette, Link as LinkIcon, Plus, Trash2, Hash
+  Type, Tag, Palette, Link as LinkIcon, Plus, Trash2, Hash,
+  Briefcase, MapPin, Activity, FileText, Target, Zap, Globe
 } from 'lucide-react';
+import RichTextEditor from '../components/RichTextEditor';
 
 const CLOUDINARY_CLOUD_NAME = "dvjpw2pqh";
 const CLOUDINARY_UPLOAD_PRESET = "ml_default";
@@ -21,18 +23,29 @@ const ProjectEditorPage = () => {
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
+    entryType: 'portfolio',
     category: 'Technology',
+    client: '',
+    clientLocation: '',
     desc: '',
-    longDescription: '',
+    content: '',
     color: '#6a35ff',
     image: '',
     mockupImage: '',
+    growthBadge: '',
+    beforeStats: '',
+    afterStats: '',
+    challenge: '',
+    solution: '',
     gallery: [],
     order: 0,
     features: [''],
     techStack: [''],
     stats: [{ label: '', value: '' }],
-    links: [{ type: 'web', label: 'View Project', url: '' }]
+    links: [{ type: 'web', label: 'View Project', url: '' }],
+    metaTitle: '',
+    metaDescription: '',
+    metaKeywords: ''
   });
 
   useEffect(() => {
@@ -56,16 +69,25 @@ const ProjectEditorPage = () => {
       const projects = await projectService.getAllProjects();
       const proj = projects.find(p => p.id === id);
       if (proj) {
-        // Ensure arrays exist
         setFormData({
           ...proj,
-          longDescription: proj.longDescription || '',
+          client: proj.client || '',
+          clientLocation: proj.clientLocation || '',
+          content: proj.content || proj.longDescription || '',
           mockupImage: proj.mockupImage || '',
+          growthBadge: proj.growthBadge || '',
+          beforeStats: proj.beforeStats || '',
+          afterStats: proj.afterStats || '',
+          challenge: proj.challenge || '',
+          solution: proj.solution || '',
           gallery: proj.gallery?.length ? proj.gallery : [],
           features: proj.features?.length ? proj.features : [''],
           techStack: proj.techStack?.length ? proj.techStack : [''],
           stats: proj.stats?.length ? proj.stats : [{ label: '', value: '' }],
-          links: proj.links?.length ? proj.links : [{ type: 'web', label: 'View Project', url: '' }]
+          links: proj.links?.length ? proj.links : [{ type: 'web', label: 'View Project', url: '' }],
+          metaTitle: proj.metaTitle || '',
+          metaDescription: proj.metaDescription || '',
+          metaKeywords: proj.metaKeywords || ''
         });
       }
     } catch (err) {
@@ -147,7 +169,6 @@ const ProjectEditorPage = () => {
       return;
     }
 
-    // Clean empty items before saving
     const cleanedData = {
       ...formData,
       gallery: formData.gallery.filter(g => g.trim() !== ''),
@@ -184,7 +205,6 @@ const ProjectEditorPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Top Bar */}
       <header className="h-20 border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 bg-white/80 backdrop-blur-md z-30">
         <div className="flex items-center gap-6">
           <button 
@@ -206,10 +226,11 @@ const ProjectEditorPage = () => {
         </button>
       </header>
 
-      <main className="max-w-5xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <main className="max-w-7xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
         
-        {/* Main Content Form */}
         <div className="lg:col-span-2 space-y-8">
+          
+          {/* Basic Info */}
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
             <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2"><Type size={18} className="text-[#6a35ff]"/> Basic Info</h2>
             
@@ -228,12 +249,89 @@ const ProjectEditorPage = () => {
               className="w-full text-gray-900 font-medium border-none bg-transparent focus:ring-0 resize-none px-0 min-h-[80px]"
             />
             
-            <textarea
-              value={formData.longDescription || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, longDescription: e.target.value }))}
-              placeholder="Long Article / Editorial Description..."
-              className="w-full text-gray-900 font-medium border-t border-gray-100 pt-4 bg-transparent focus:ring-0 resize-y px-0 min-h-[200px]"
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Briefcase size={12}/> Client Name</label>
+                <input type="text" value={formData.client} onChange={e => setFormData(p => ({...p, client: e.target.value}))} className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-900" placeholder="e.g. Furnico Living" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><MapPin size={12}/> Client Location</label>
+                <input type="text" value={formData.clientLocation} onChange={e => setFormData(p => ({...p, clientLocation: e.target.value}))} className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-900" placeholder="e.g. United Kingdom" />
+              </div>
+            </div>
+            
+            <div className="space-y-2 pt-4 border-t border-gray-100">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><FileText size={12}/> Detailed Content (Rich Text)</label>
+              <div className="mt-2">
+                <RichTextEditor 
+                  value={formData.content} 
+                  onChange={(val) => setFormData(prev => ({ ...prev, content: val }))} 
+                  placeholder="Start writing the project overview..." 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Aeronox Special Sections */}
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-8">
+            <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2"><Target size={18} className="text-[#6a35ff]"/> Case Study Narrative</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Activity size={12}/> Growth Badge</label>
+                <input type="text" value={formData.growthBadge} onChange={e => setFormData(p => ({...p, growthBadge: e.target.value}))} className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-900" placeholder="e.g. +185% Organic Revenue" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Before Stats</label>
+                <textarea value={formData.beforeStats} onChange={e => setFormData(p => ({...p, beforeStats: e.target.value}))} className="w-full p-3 bg-red-50 text-red-900 rounded-xl border-none text-sm font-medium resize-none min-h-[100px]" placeholder="Page Load: 4.8s&#10;Bounce Rate: 68%" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">After Stats</label>
+                <textarea value={formData.afterStats} onChange={e => setFormData(p => ({...p, afterStats: e.target.value}))} className="w-full p-3 bg-green-50 text-green-900 rounded-xl border-none text-sm font-medium resize-none min-h-[100px]" placeholder="Page Load: 0.7s&#10;Bounce Rate: 24%" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 pt-4 border-t border-gray-100">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">The Challenge</label>
+                <RichTextEditor 
+                  value={formData.challenge} 
+                  onChange={(val) => setFormData(prev => ({ ...prev, challenge: val }))} 
+                  placeholder="Describe the client's core problem..." 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">The Solution</label>
+                <RichTextEditor 
+                  value={formData.solution} 
+                  onChange={(val) => setFormData(prev => ({ ...prev, solution: val }))} 
+                  placeholder="Describe how you solved it..." 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SEO Section */}
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+            <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2"><Globe size={18} className="text-[#6a35ff]"/> SEO & Metadata</h2>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Meta Title</label>
+              <input type="text" value={formData.metaTitle} onChange={e => setFormData(p => ({...p, metaTitle: e.target.value}))} className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-900" placeholder="e.g. Best E-commerce App | Devlyx" />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Meta Description</label>
+              <textarea value={formData.metaDescription} onChange={e => setFormData(p => ({...p, metaDescription: e.target.value}))} className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm font-medium resize-none min-h-[80px]" placeholder="A short description for search engines..." />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Meta Keywords</label>
+              <input type="text" value={formData.metaKeywords} onChange={e => setFormData(p => ({...p, metaKeywords: e.target.value}))} className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-900" placeholder="e.g. react, app development, startup" />
+            </div>
           </div>
 
           {/* Features & Tech */}
@@ -286,7 +384,7 @@ const ProjectEditorPage = () => {
           </div>
           
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-             <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-6">Impact Stats</h2>
+             <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-6">Secondary Impact Stats</h2>
              <div className="space-y-4">
                 {formData.stats.map((stat, i) => (
                   <div key={i} className="flex gap-2">
@@ -298,6 +396,29 @@ const ProjectEditorPage = () => {
                 <button onClick={() => addArrayItem('stats', { label: '', value: '' })} className="text-xs font-bold text-[#6a35ff] flex items-center gap-1 hover:underline"><Plus size={14}/> Add Stat</button>
              </div>
           </div>
+          
+          <div className="bg-red-50 p-8 rounded-3xl shadow-sm border border-red-100">
+             <h2 className="text-sm font-black text-red-900 uppercase tracking-widest mb-4">Danger Zone / Admin Tools</h2>
+             <p className="text-xs text-red-600 mb-4">This will inject all hardcoded Aeronox-Solutions projects into the database. Do not click this multiple times unless you want duplicates!</p>
+             <button 
+               onClick={async () => {
+                 if(window.confirm("Are you sure you want to seed Aeronox data?")) {
+                   setSaving(true);
+                   try {
+                     await projectService.seedAeronoxData();
+                     alert("Seed complete! Go back to portfolio to view.");
+                   } catch(e) {
+                     alert("Seed failed: " + e.message);
+                   }
+                   setSaving(false);
+                 }
+               }}
+               disabled={saving}
+               className="px-6 py-3 bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-colors"
+             >
+               Seed Aeronox Portfolio Data
+             </button>
+          </div>
 
         </div>
 
@@ -306,6 +427,18 @@ const ProjectEditorPage = () => {
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-6">
             <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-2">Details</h2>
             
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Tag size={12}/> Entry Type</label>
+              <select 
+                value={formData.entryType} 
+                onChange={e => setFormData(p => ({...p, entryType: e.target.value}))} 
+                className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-900"
+              >
+                <option value="portfolio">Portfolio Project</option>
+                <option value="product">Product</option>
+              </select>
+            </div>
+
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><LinkIcon size={12}/> Slug</label>
               <input type="text" value={formData.slug} onChange={e => setFormData(p => ({...p, slug: e.target.value}))} className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-900" />

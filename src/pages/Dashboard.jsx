@@ -42,12 +42,14 @@ import {
   Settings,
   Download,
   Share2,
-  MessageCircle
+  MessageCircle,
+  Info
 } from 'lucide-react';
 import WorldMap from '../components/WorldMap';
 import { sitemapService } from '../services/sitemapService';
 import { chatService } from '../services/chatService';
 import ClientsDashboardPage from './ClientsDashboardPage';
+import AboutSettingsPage from './AboutSettingsPage';
 
 import { useDashboardTheme } from '../hooks/useDashboardTheme';
 import { teamService, ROLES } from '../services/teamService';
@@ -67,6 +69,7 @@ const ALL_NAV = [
   { id: 'subscribers',  name: 'Subscribers',  icon: CheckCircle2 },
   { id: 'analytics',    name: 'Analytics',    icon: BarChart2 },
   { id: 'team',         name: 'Team',         icon: Users },
+  { id: 'about_page',   name: 'About Page',   icon: Info },
   { id: 'settings',     name: 'Settings',     icon: Settings },
 ];
 
@@ -80,6 +83,7 @@ const NAV_PATHS = {
   subscribers: '/dashboard/subscribers',
   analytics: '/dashboard/analytics',
   team: '/dashboard/team',
+  about_page: '/dashboard/about-page',
   settings: '/dashboard/settings',
 };
 
@@ -1722,6 +1726,7 @@ const Dashboard = () => {
                   <thead>
                     <tr className="border-b border-gray-50">
                       <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Project</th>
+                      <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Type</th>
                       <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Category</th>
                       <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Order</th>
                       <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
@@ -1740,6 +1745,11 @@ const Dashboard = () => {
                               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">/{proj.slug}</div>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-10 py-6">
+                          <span className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full ${proj.entryType === 'product' ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
+                            {proj.entryType || 'portfolio'}
+                          </span>
                         </td>
                         <td className="px-10 py-6">
                           <span className="px-3 py-1.5 bg-purple-50 text-[10px] font-black uppercase tracking-widest text-[#6a35ff] rounded-full">
@@ -1903,6 +1913,11 @@ const Dashboard = () => {
       <Route path="/team" element={
         <DashboardLayout activeTab="team" user={user}>
           <TeamPage />
+        </DashboardLayout>
+      } />
+      <Route path="/about-page" element={
+        <DashboardLayout activeTab="about_page" user={user}>
+          <AboutSettingsPage />
         </DashboardLayout>
       } />
       <Route path="/settings" element={

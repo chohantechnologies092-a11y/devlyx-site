@@ -21,7 +21,7 @@ export const ROLES = {
   super_admin: {
     label: 'Super Admin',
     color: 'purple',
-    allowedTabs: ['overview', 'projects', 'posts', 'clients', 'support', 'leads', 'subscribers', 'analytics', 'team', 'settings']
+    allowedTabs: ['overview', 'projects', 'posts', 'clients', 'support', 'leads', 'subscribers', 'analytics', 'team', 'about_page', 'settings']
   },
   blogger: {
     label: 'Blogger',

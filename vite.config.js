@@ -5,4 +5,20 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase')) return 'firebase-vendor';
+            if (id.includes('@tiptap') || id.includes('prosemirror')) return 'editor-vendor';
+            if (id.includes('framer-motion') || id.includes('lucide-react')) return 'ui-vendor';
+            if (id.includes('react/') || id.includes('react-dom') || id.includes('react-router-dom')) return 'react-vendor';
+            return 'vendor';
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
+  }
 })

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
-const SEO = ({ title, description, image, url, type = 'website', articleData = null }) => {
+const SEO = ({ title, description, image, url, type = 'website', articleData = null, keywords = '' }) => {
   const siteName = 'Devlyx Solutions';
   const fullTitle = title ? `${title} | ${siteName}` : `${siteName} | Premium Digital Engineering`;
   const defaultDesc = "Devlyx Solutions is a world-class software engineering agency specializing in high-performance web applications, mobile apps, and AI-driven digital transformations.";
@@ -76,6 +76,7 @@ const SEO = ({ title, description, image, url, type = 'website', articleData = n
       {/* Basic Meta Tags */}
       <title>{fullTitle}</title>
       <meta name="description" content={metaDesc} />
+      {keywords && <meta name="keywords" content={keywords} />}
       <link rel="canonical" href={metaUrl} />
 
       {/* Open Graph / Facebook */}

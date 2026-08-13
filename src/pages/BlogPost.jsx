@@ -101,10 +101,11 @@ const BlogPost = () => {
   return (
     <div className="w-full bg-[#fcfcfd]">
       <SEO 
-        title={post.title}
-        description={post.excerpt}
+        title={post.metaTitle || post.title}
+        description={post.metaDescription || post.excerpt}
+        keywords={post.tags || ''}
         image={post.coverImage}
-        url={`https://devlyxsolutions.com/blog/${slug}`}
+        url={post.canonicalUrl || `https://devlyxsolutions.com/blog/${slug}`}
         type="article"
         articleData={{
           publishedTime: post.createdAt?.seconds ? new Date(post.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
