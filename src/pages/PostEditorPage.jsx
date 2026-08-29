@@ -39,9 +39,9 @@ import {
 import { blogService } from '../services/blogService';
 import { auth } from '../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
+import imageCompression from 'browser-image-compression';
 
-const CLOUDINARY_CLOUD_NAME = "dvjpw2pqh";
-const CLOUDINARY_UPLOAD_PRESET = "ml_default";
+const IMGBB_API_KEY = "3bde4002f57762e1e1ca9dc45a90b80b";
 
 const PostEditorPage = () => {
   const { id } = useParams();
@@ -203,20 +203,22 @@ const PostEditorPage = () => {
       }
 
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1200, useWebWorker: false };
+        const compressedFile = await imageCompression(file, options);
+        
+        const fd = new FormData();
+        fd.append('image', compressedFile);
 
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
           method: 'POST',
-          body: formData
+          body: fd
         });
 
-        if (!response.ok) throw new Error('Cloudinary upload failed');
-        
+        if (!response.ok) throw new Error('ImgBB upload failed');
         const data = await response.json();
-        const url = data.secure_url;
-        console.log("Cloudinary Upload successful:", url);
+        const url = data.data.url;
+        
+        console.log("Firebase Storage Upload successful:", url);
         
         // Swap base64 for real URL
         if (editor) {
@@ -238,8 +240,8 @@ const PostEditorPage = () => {
           setFormData(prev => ({ ...prev, content: editor.getHTML() }));
         }
       } catch (err) {
-        console.error("Cloudinary error:", err);
-        alert("Upload failed! Please ensure your Cloudinary preset is set to 'Unsigned'.");
+        console.error("Upload error:", err);
+        alert("Upload failed! Please check your connection.");
       } finally {
         setSaving(false);
       }
@@ -253,19 +255,22 @@ const PostEditorPage = () => {
 
     setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1200, useWebWorker: false };
+      const compressedFile = await imageCompression(file, options);
+      
+      const fd = new FormData();
+      fd.append('image', compressedFile);
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
         method: 'POST',
-        body: formData
+        body: fd
       });
 
       if (!response.ok) throw new Error('Cover upload failed');
-      
       const data = await response.json();
-      setFormData(prev => ({ ...prev, coverImage: data.secure_url }));
+      const url = data.data.url;
+      
+      setFormData(prev => ({ ...prev, coverImage: url }));
     } catch (err) {
       console.error("Cover upload error:", err);
       alert("Cover upload failed!");

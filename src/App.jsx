@@ -52,19 +52,35 @@ const PageLoader = () => (
 import ChatBubble from './components/ChatBubble';
 import DexGreeter from './components/DexGreeter';
 
-function App() {
-  useEffect(() => {
-    // Track the visit (with geolocation + device)
-    statsService.trackVisit().catch(console.error);
+const AnalyticsTracker = () => {
+  const location = useLocation();
+  const prevPathRef = React.useRef(null);
 
-    // Save time-on-site when user hides tab or closes browser
+  useEffect(() => {
+    // If admin device or logged in as admin, never track
+    if (statsService.isAdminDevice()) return;
+
+    const currentPath = location.pathname;
+    
+    // If switching from another page, record previous page time
+    if (prevPathRef.current && prevPathRef.current !== currentPath) {
+      statsService.saveTimeOnSite().catch(() => {});
+    }
+
+    prevPathRef.current = currentPath;
+    
+    // Track new pageview with path
+    statsService.trackPageView(currentPath).catch(() => {});
+  }, [location.pathname]);
+
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        statsService.saveTimeOnSite().catch(console.error);
+        statsService.saveTimeOnSite().catch(() => {});
       }
     };
     const handleBeforeUnload = () => {
-      statsService.saveTimeOnSite().catch(console.error);
+      statsService.saveTimeOnSite().catch(() => {});
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -76,11 +92,28 @@ function App() {
     };
   }, []);
 
+  return null;
+};
+
+import { auth } from './firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+
+function App() {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        statsService.setAdminDevice(true);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <HelmetProvider>
       <ErrorBoundary>
         <Router>
           <ScrollToTop />
+          <AnalyticsTracker />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Home />} />

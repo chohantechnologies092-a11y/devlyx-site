@@ -7,9 +7,9 @@ import { projectService } from '../services/projectService';
 import { 
   ArrowLeft, Loader2, ExternalLink, Target, Zap, CheckCircle2,
   ChevronRight, Cpu, MapPin, TrendingUp, FileText, Sparkles,
-  ArrowRight, Layout, BarChart2, Quote, Globe
+  ArrowRight, Layout, BarChart2, Quote, Globe, X
 } from 'lucide-react';
-import { motion, useScroll, useSpring, useTransform } from 'framer-motion';
+import { motion, useScroll, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 
 // Removed custom parseContent since we are using Rich Text (HTML) now
 
@@ -18,6 +18,7 @@ const ProjectDetail = () => {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
   
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll();
@@ -299,15 +300,47 @@ const ProjectDetail = () => {
                  {project.gallery.map((img, i) => (
                     <motion.div 
                       key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-10%" }}
-                      className="rounded-[2.5rem] overflow-hidden shadow-lg border border-black/5 group relative inline-block w-full break-inside-avoid bg-white"
+                      className="rounded-[2.5rem] overflow-hidden shadow-lg border border-black/5 group relative inline-block w-full break-inside-avoid bg-white cursor-pointer"
+                      onClick={() => setSelectedImage(img)}
                     >
-                       <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
+                       <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 flex items-center justify-center">
+                          <span className="text-white bg-black/50 px-4 py-2 rounded-full text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">View</span>
+                       </div>
                        <img src={img} className="w-full h-auto transition-transform duration-[1.5s] ease-out group-hover:scale-105" alt="Screenshot" loading="lazy" />
                     </motion.div>
                  ))}
               </div>
            </section>
         )}
+
+        {/* Fullscreen Image Modal */}
+        <AnimatePresence>
+           {selectedImage && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedImage(null)}
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 cursor-zoom-out"
+              >
+                 <button 
+                   onClick={() => setSelectedImage(null)}
+                   className="absolute top-6 right-6 md:top-10 md:right-10 text-white/50 hover:text-white transition-colors p-2 bg-white/10 rounded-full backdrop-blur-md"
+                 >
+                    <X size={24} />
+                 </button>
+                 <motion.img 
+                   initial={{ scale: 0.9 }}
+                   animate={{ scale: 1 }}
+                   exit={{ scale: 0.9 }}
+                   src={selectedImage} 
+                   alt="Fullscreen view" 
+                   className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl" 
+                   onClick={(e) => e.stopPropagation()}
+                 />
+              </motion.div>
+           )}
+        </AnimatePresence>
 
         {/* Grand Bottom Navigation */}
         <section className="py-40 px-6 bg-white">

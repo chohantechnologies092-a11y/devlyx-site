@@ -17,18 +17,27 @@
   background-color: #0f0f14 !important;
 }
 [data-dash-theme="dark"] .bg-gray-50,
+[data-dash-theme="dark"] .bg-gray-50\/80,
+[data-dash-theme="dark"] .bg-gray-50\/70,
+[data-dash-theme="dark"] .bg-gray-50\/60,
 [data-dash-theme="dark"] .bg-gray-50\/50,
 [data-dash-theme="dark"] .bg-gray-50\/30 {
-  background-color: #16161e !important;
+  background-color: #161622 !important;
 }
-[data-dash-theme="dark"] .bg-gray-100 {
-  background-color: #2a2a3a !important;
+[data-dash-theme="dark"] .bg-gray-100,
+[data-dash-theme="dark"] .bg-gray-100\/80,
+[data-dash-theme="dark"] .bg-gray-100\/60 {
+  background-color: #242434 !important;
 }
-[data-dash-theme="dark"] .bg-gray-200 {
-  background-color: #3a3a4a !important;
+[data-dash-theme="dark"] .bg-gray-200,
+[data-dash-theme="dark"] .bg-gray-200\/70 {
+  background-color: #323246 !important;
 }
 [data-dash-theme="dark"] .bg-purple-50 {
-  background-color: #2d1f5e !important;
+  background-color: #26194d !important;
+}
+[data-dash-theme="dark"] .bg-cyan-50 {
+  background-color: #0d2830 !important;
 }
 [data-dash-theme="dark"] .bg-indigo-50 {
   background-color: #1e1a4a !important;
@@ -60,15 +69,33 @@
   color: #9090a8 !important;
 }
 [data-dash-theme="dark"] .text-gray-400 {
-  color: #7070888 !important;
+  color: #8888a0 !important;
+}
+[data-dash-theme="dark"] .text-gray-300 {
+  color: #55556a !important;
 }
 
 /* Borders */
-[data-dash-theme="dark"] .border-gray-100 {
+[data-dash-theme="dark"] .border-gray-50,
+[data-dash-theme="dark"] .border-gray-50\/50,
+[data-dash-theme="dark"] .border-gray-100,
+[data-dash-theme="dark"] .border-gray-100\/80,
+[data-dash-theme="dark"] .border-gray-100\/60,
+[data-dash-theme="dark"] .border-gray-100\/50 {
   border-color: #2a2a3a !important;
 }
-[data-dash-theme="dark"] .border-gray-200 {
+[data-dash-theme="dark"] .border-gray-200,
+[data-dash-theme="dark"] .border-gray-200\/60 {
   border-color: #3a3a4a !important;
+}
+[data-dash-theme="dark"] .border-cyan-100 {
+  border-color: #00c2cb33 !important;
+}
+[data-dash-theme="dark"] .border-purple-100 {
+  border-color: #6a35ff33 !important;
+}
+[data-dash-theme="dark"] .border-emerald-100 {
+  border-color: #10b98133 !important;
 }
 [data-dash-theme="dark"] .border-t,
 [data-dash-theme="dark"] .border-b,

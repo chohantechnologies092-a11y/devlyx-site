@@ -240,12 +240,12 @@ const AllProjects = () => {
                                         className="group relative rounded-[2.5rem] bg-white border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col h-full"
                                     >
                                         {/* Top Image Section */}
-                                        <Link to={`/projects/${proj.slug}`} className="relative w-full h-[240px] overflow-hidden bg-gray-100 shrink-0 block">
+                                        <Link to={`/projects/${proj.slug}`} className="relative w-full h-auto overflow-hidden bg-gray-100 shrink-0 block">
                                             {proj.image ? (
-                                                <img src={proj.image} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-[1.5s] ease-out" alt={proj.title} />
+                                                <img src={proj.image} className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-[1.5s] ease-out" alt={proj.title} />
                                             ) : (
                                                 <div
-                                                    className="w-full h-full"
+                                                    className="w-full h-[240px]"
                                                     style={{ background: `linear-gradient(135deg, ${proj.color || '#6a35ff'}33 0%, #f8f9fc 100%)` }}
                                                 />
                                             )}

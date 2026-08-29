@@ -96,6 +96,8 @@ const DashboardLayout = ({ children, activeTab, user }) => {
   const [userRole, setUserRole] = useState('super_admin');
 
   useEffect(() => {
+    // Automatically flag this browser/device as admin so visits are NEVER tracked in analytics
+    statsService.setAdminDevice(true);
     if (user?.email) {
       teamService.getUserRole(user.email).then(setUserRole);
     }
@@ -699,14 +701,15 @@ const LeadsPage = () => {
   );
 };
 
-// --- Analytics Page ---
+// --- Analytics Page (Google Analytics Grade) ---
 const AnalyticsPage = ({ posts }) => {
+  const { t, dark } = React.useContext(ThemeCtx);
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState('7d'); // 'today', '7d', '30d', 'all'
 
   useEffect(() => {
     statsService.getAllVisits().then(data => { 
-      // Filter out admin routes so old data is hidden
       const filtered = data.filter(v => {
         const p = v.page || '';
         return !p.startsWith('/admin') && !p.startsWith('/login') && !p.startsWith('/dashboard');
@@ -716,125 +719,380 @@ const AnalyticsPage = ({ posts }) => {
     });
   }, []);
 
-  const avgTime = visits.length
-    ? Math.round(visits.filter(v => v.timeOnSite > 0).reduce((a, v) => a + v.timeOnSite, 0) / (visits.filter(v => v.timeOnSite > 0).length || 1))
+  const now = Date.now();
+
+  const getDateTimestamp = (createdAt) => {
+    if (!createdAt) return 0;
+    if (createdAt.toDate && typeof createdAt.toDate === 'function') return createdAt.toDate().getTime();
+    if (createdAt.seconds) return createdAt.seconds * 1000;
+    if (createdAt instanceof Date) return createdAt.getTime();
+    if (typeof createdAt === 'number') return createdAt;
+    if (typeof createdAt === 'string') return new Date(createdAt).getTime();
+    return 0;
+  };
+
+  const getDateString = (createdAt) => {
+    const ms = getDateTimestamp(createdAt);
+    if (!ms) return null;
+    return new Date(ms).toISOString().split('T')[0];
+  };
+
+  // Filter visits based on selected timeframe
+  const filteredVisits = visits.filter(v => {
+    const time = getDateTimestamp(v.createdAt);
+    if (!time) return true;
+    if (timeframe === 'today') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      return getDateString(v.createdAt) === todayStr;
+    }
+    if (timeframe === '7d') {
+      return (now - time) <= 7 * 24 * 60 * 60 * 1000;
+    }
+    if (timeframe === '30d') {
+      return (now - time) <= 30 * 24 * 60 * 60 * 1000;
+    }
+    return true;
+  });
+
+  // Real-time active users (Active within last 5 minutes)
+  const realTimeActiveUsers = visits.filter(v => {
+    const activeTime = getDateTimestamp(v.lastActiveAt || v.createdAt);
+    return (now - activeTime) <= 5 * 60 * 1000;
+  }).length;
+
+  // Unique Visitors (by visitorId)
+  const uniqueVisitorIds = new Set(filteredVisits.map(v => v.visitorId || v.id));
+  const totalUniqueVisitors = uniqueVisitorIds.size || filteredVisits.length;
+
+  // Total Pageviews
+  const totalPageviews = filteredVisits.length;
+
+  // Average Engagement Time
+  const validTimes = filteredVisits.filter(v => (v.timeOnSite || 0) > 0);
+  const avgTime = validTimes.length
+    ? Math.round(validTimes.reduce((acc, v) => acc + v.timeOnSite, 0) / validTimes.length)
     : 0;
 
-  const fmtTime = s => s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
+  const fmtTime = (s) => {
+    if (!s || s <= 0) return '0s';
+    if (s >= 60) {
+      const m = Math.floor(s / 60);
+      const rem = s % 60;
+      return `${m}m ${rem}s`;
+    }
+    return `${s}s`;
+  };
 
-  const byCountry = visits.reduce((acc, v) => {
-    const key = v.country || 'Unknown';
-    acc[key] = (acc[key] || 0) + 1;
+  // Bounce Rate (% of sessions with single pageview and < 10s duration)
+  const bounces = filteredVisits.filter(v => (v.pageviews || 1) <= 1 && (v.timeOnSite || 0) < 10).length;
+  const bounceRate = filteredVisits.length ? Math.round((bounces / filteredVisits.length) * 100) : 0;
+
+  // Traffic Acquisition Channels
+  const channelCounts = filteredVisits.reduce((acc, v) => {
+    const ch = v.trafficType || v.channel || 'Direct';
+    acc[ch] = (acc[ch] || 0) + 1;
     return acc;
   }, {});
-  const countryList = Object.entries(byCountry).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  const channelList = Object.entries(channelCounts).sort((a, b) => b[1] - a[1]);
 
-  const byDevice = visits.reduce((acc, v) => {
-    const key = v.device || 'Desktop';
-    acc[key] = (acc[key] || 0) + 1;
+  // Countries Breakdown
+  const countryCounts = filteredVisits.reduce((acc, v) => {
+    const c = v.country || 'Unknown';
+    acc[c] = (acc[c] || 0) + 1;
+    return acc;
+  }, {});
+  const countryList = Object.entries(countryCounts).sort((a, b) => b[1] - a[1]);
+
+  // Devices Breakdown
+  const deviceCounts = filteredVisits.reduce((acc, v) => {
+    const d = v.device || 'Desktop';
+    acc[d] = (acc[d] || 0) + 1;
     return acc;
   }, {});
 
-  const topPage = visits.reduce((acc, v) => {
-    const k = v.page || '/';
-    acc[k] = (acc[k] || 0) + 1;
+  // Operating Systems Breakdown
+  const osCounts = filteredVisits.reduce((acc, v) => {
+    const o = v.os || 'Windows';
+    acc[o] = (acc[o] || 0) + 1;
     return acc;
   }, {});
-  const pageList = Object.entries(topPage).sort((a,b) => b[1]-a[1]).slice(0, 5);
 
-  const maxCountry = countryList[0]?.[1] || 1;
-  const topPost = [...posts].sort((a,b) => (b.views||0)-(a.views||0)).slice(0, 5);
-  const maxViews = topPost[0]?.views || 1;
+  // Browsers Breakdown
+  const browserCounts = filteredVisits.reduce((acc, v) => {
+    const b = v.browser || 'Chrome';
+    acc[b] = (acc[b] || 0) + 1;
+    return acc;
+  }, {});
 
-  // Group visits by date for the growth chart
-  const last7Days = [...Array(7)].map((_, i) => {
+  // Top Pages
+  const pageCounts = filteredVisits.reduce((acc, v) => {
+    const p = v.page || '/';
+    if (!acc[p]) acc[p] = { count: 0, totalTime: 0, title: v.pageTitle || p };
+    acc[p].count += 1;
+    acc[p].totalTime += (v.timeOnSite || 0);
+    return acc;
+  }, {});
+  const pageList = Object.entries(pageCounts)
+    .map(([url, data]) => ({ url, ...data, avgTime: Math.round(data.totalTime / data.count) }))
+    .sort((a, b) => b.count - a.count);
+
+  // Daily Trend Chart Data
+  const dayCount = timeframe === 'today' ? 1 : timeframe === '30d' ? 30 : 7;
+  const daysArray = [...Array(dayCount)].map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
     return d.toISOString().split('T')[0];
   }).reverse();
 
-  const getDateString = (createdAt) => {
-    if (!createdAt) return null;
-    if (createdAt.toDate && typeof createdAt.toDate === 'function') return createdAt.toDate().toISOString().split('T')[0];
-    if (createdAt.seconds) return new Date(createdAt.seconds * 1000).toISOString().split('T')[0];
-    if (typeof createdAt === 'string') return createdAt.split('T')[0];
-    if (createdAt instanceof Date) return createdAt.toISOString().split('T')[0];
-    if (typeof createdAt === 'number') return new Date(createdAt).toISOString().split('T')[0];
-    return null;
-  };
-
-  const chartData = last7Days.map(date => {
-    const count = visits.filter(v => getDateString(v.createdAt) === date).length;
-    return { date: date.split('-').slice(1).join('/'), count };
+  const chartData = daysArray.map(dateStr => {
+    const dayVisits = filteredVisits.filter(v => getDateString(v.createdAt) === dateStr);
+    const dayUniques = new Set(dayVisits.map(v => v.visitorId || v.id)).size;
+    return {
+      date: dateStr.split('-').slice(1).join('/'),
+      views: dayVisits.length,
+      uniques: dayUniques
+    };
   });
-  const maxVisits = Math.max(...chartData.map(d => d.count), 1);
+  const maxViews = Math.max(...chartData.map(d => d.views), 1);
+
+  // Sub-card background token for seamless dark/light contrast
+  const itemBg = dark ? '#13131c' : '#f8f9fc';
+  const itemBorder = dark ? '#262638' : '#f0f1f6';
 
   return (
     <div className="space-y-10">
-      <header>
-        <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-2">Analytics</h1>
-        <p className="text-gray-500 font-medium">Real-time visitor data collected from your site.</p>
+      {/* Header with Title & Timeframe Filters */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-2">
+        <div>
+          <div 
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-3 border transition-colors"
+            style={{ 
+              background: dark ? 'rgba(16, 185, 129, 0.12)' : '#ecfdf5', 
+              borderColor: dark ? 'rgba(16, 185, 129, 0.25)' : '#a7f3d0' 
+            }}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">
+              {realTimeActiveUsers > 0 ? `${realTimeActiveUsers} Active User${realTimeActiveUsers > 1 ? 's' : ''} Online Now` : 'Real-time Tracking Active'}
+            </span>
+          </div>
+          <h1 className="text-4xl font-black tracking-tighter" style={{ color: t.text }}>Site Analytics</h1>
+          <p className="text-sm font-medium mt-1" style={{ color: t.textMuted }}>Google Analytics-grade visitor intelligence & engagement data.</p>
+        </div>
+
+        {/* Timeframe Selector Pills */}
+        <div 
+          className="flex items-center gap-1.5 p-1.5 rounded-2xl border shadow-inner w-fit"
+          style={{ background: dark ? '#161622' : '#f1f2f6', borderColor: t.cardBorder }}
+        >
+          {[
+            { id: 'today', label: 'Today' },
+            { id: '7d', label: 'Last 7 Days' },
+            { id: '30d', label: 'Last 30 Days' },
+            { id: 'all', label: 'All Time' }
+          ].map(tf => {
+            const isActive = timeframe === tf.id;
+            return (
+              <button
+                key={tf.id}
+                onClick={() => setTimeframe(tf.id)}
+                className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                style={{
+                  background: isActive ? '#6a35ff' : 'transparent',
+                  color: isActive ? '#ffffff' : t.textMuted,
+                  boxShadow: isActive ? '0 4px 14px rgba(106,53,255,0.35)' : 'none'
+                }}
+              >
+                {tf.label}
+              </button>
+            );
+          })}
+        </div>
       </header>
 
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-[#6a35ff] border-t-transparent rounded-full animate-spin"></div></div>
+        <div className="flex justify-center py-20">
+          <div className="w-12 h-12 border-4 border-[#6a35ff] border-t-transparent rounded-full animate-spin"></div>
+        </div>
       ) : (
         <>
-          {/* Top stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-            {[
-              { label: 'Total Sessions', val: visits.length, icon: <Activity size={18}/>, color: 'bg-purple-50 text-[#6a35ff]' },
-              { label: 'Avg. Time on Site', val: fmtTime(avgTime), icon: <Clock size={18}/>, color: 'bg-cyan-50 text-[#00c2cb]' },
-              { label: 'Top Country', val: countryList[0]?.[0] || '—', icon: <Globe size={18}/>, color: 'bg-green-50 text-green-600' },
-              { label: 'Mobile Sessions', val: `${Math.round(((byDevice['Mobile']||0)/visits.length)*100)||0}%`, icon: <MonitorSmartphone size={18}/>, color: 'bg-orange-50 text-orange-500' },
-            ].map((s,i) => (
-              <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${s.color}`}>{s.icon}</div>
-                <div className="text-2xl font-black text-gray-900 mb-1">{s.val}</div>
-                <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">{s.label}</div>
+          {/* Core GA Metrics Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div 
+              className="p-7 rounded-[2.5rem] border shadow-sm relative overflow-hidden transition-all duration-300 hover:shadow-xl"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div 
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                  style={{ background: dark ? '#26194d' : '#f3e8ff', color: '#6a35ff' }}
+                >
+                  <Users size={20} />
+                </div>
+                <span 
+                  className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border"
+                  style={{ background: dark ? '#26194d' : '#f3e8ff', color: '#a78bfa', borderColor: dark ? '#3e2480' : '#e9d5ff' }}
+                >
+                  Unique
+                </span>
               </div>
-            ))}
+              <div className="text-3xl sm:text-4xl font-black mb-1" style={{ color: t.text }}>{totalUniqueVisitors}</div>
+              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Total Visitors</div>
+            </div>
+
+            <div 
+              className="p-7 rounded-[2.5rem] border shadow-sm relative overflow-hidden transition-all duration-300 hover:shadow-xl"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div 
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                  style={{ background: dark ? '#0d2830' : '#e0f7fa', color: '#00c2cb' }}
+                >
+                  <Eye size={20} />
+                </div>
+                <span 
+                  className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border"
+                  style={{ background: dark ? '#0d2830' : '#e0f7fa', color: '#00c2cb', borderColor: dark ? '#134e5e' : '#b2ebf2' }}
+                >
+                  Hits
+                </span>
+              </div>
+              <div className="text-3xl sm:text-4xl font-black mb-1" style={{ color: t.text }}>{totalPageviews}</div>
+              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Total Pageviews</div>
+            </div>
+
+            <div 
+              className="p-7 rounded-[2.5rem] border shadow-sm relative overflow-hidden transition-all duration-300 hover:shadow-xl"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div 
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                  style={{ background: dark ? '#2a1e00' : '#fef3c7', color: '#f59e0b' }}
+                >
+                  <Clock size={20} />
+                </div>
+                <span 
+                  className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border"
+                  style={{ background: dark ? '#2a1e00' : '#fef3c7', color: '#f59e0b', borderColor: dark ? '#4d3700' : '#fde68a' }}
+                >
+                  Active
+                </span>
+              </div>
+              <div className="text-3xl sm:text-4xl font-black mb-1" style={{ color: t.text }}>{fmtTime(avgTime)}</div>
+              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Avg. Engagement</div>
+            </div>
+
+            <div 
+              className="p-7 rounded-[2.5rem] border shadow-sm relative overflow-hidden transition-all duration-300 hover:shadow-xl"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div 
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                  style={{ background: dark ? '#0a2a1a' : '#d1fae5', color: '#10b981' }}
+                >
+                  <TrendingUp size={20} />
+                </div>
+                <span 
+                  className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border"
+                  style={{ background: dark ? '#0a2a1a' : '#d1fae5', color: '#10b981', borderColor: dark ? '#135c38' : '#a7f3d0' }}
+                >
+                  Quality
+                </span>
+              </div>
+              <div className="text-3xl sm:text-4xl font-black mb-1" style={{ color: t.text }}>{bounceRate}%</div>
+              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Bounce Rate</div>
+            </div>
           </div>
 
-          {/* Growth Chart */}
-          <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-4">
-                Visitor Traffic
-                <span className="text-[10px] bg-purple-50 text-[#6a35ff] px-3 py-1 rounded-lg tracking-widest uppercase">Last 7 Days</span>
-              </h2>
+          {/* Traffic Trend Bar Chart */}
+          <div 
+            className="p-8 md:p-10 rounded-[3rem] border shadow-sm transition-all"
+            style={{ background: t.card, borderColor: t.cardBorder }}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+              <div>
+                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3" style={{ color: t.text }}>
+                  Visitor Traffic Trend
+                </h2>
+                <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: t.textMuted }}>
+                  Daily pageviews vs unique users
+                </p>
+              </div>
+              <div className="flex items-center gap-5 text-[10px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-[#6a35ff] shadow-[0_0_8px_rgba(106,53,255,0.5)]"></span> 
+                  <span style={{ color: t.text }}>Pageviews</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-[#00c2cb] shadow-[0_0_8px_rgba(0,194,203,0.5)]"></span> 
+                  <span style={{ color: t.text }}>Unique Users</span>
+                </div>
+              </div>
             </div>
             
-            <div className="relative h-64 mt-4 w-full">
+            <div className="relative h-72 mt-6 w-full">
               {/* Background Grid Lines */}
               <div className="absolute inset-x-0 inset-y-0 flex flex-col justify-between pointer-events-none pb-8 z-0">
                 {[100, 75, 50, 25, 0].map((perc) => (
-                  <div key={perc} className="w-full border-t border-dashed border-gray-100 relative">
-                    <span className="absolute -left-1 -translate-x-full -top-2.5 text-[9px] font-black text-gray-300 uppercase pr-3">
-                      {Math.round((maxVisits * perc) / 100)}
+                  <div 
+                    key={perc} 
+                    className="w-full border-t border-dashed relative"
+                    style={{ borderColor: dark ? 'rgba(255,255,255,0.06)' : '#f3f4f6' }}
+                  >
+                    <span 
+                      className="absolute -left-1 -translate-x-full -top-2.5 text-[9px] font-black uppercase pr-3"
+                      style={{ color: t.textMuted }}
+                    >
+                      {Math.round((maxViews * perc) / 100)}
                     </span>
                   </div>
                 ))}
               </div>
 
               {/* Chart Bars */}
-              <div className="absolute inset-x-0 bottom-8 top-0 flex items-end justify-between gap-2 sm:gap-6 pl-10 pr-2 z-10">
+              <div className="absolute inset-x-0 bottom-8 top-0 flex items-end justify-between gap-2 sm:gap-4 pl-10 pr-2 z-10">
                 {chartData.map((d, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center group h-full justify-end">
-                    <div className="relative w-full flex flex-col items-center h-full justify-end">
+                    <div className="relative w-full flex items-end justify-center gap-1.5 h-full">
                       {/* Tooltip */}
-                      <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-all transform -translate-y-2 group-hover:translate-y-0 bg-gray-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg pointer-events-none whitespace-nowrap shadow-xl z-20">
-                        {d.count} visits
+                      <div 
+                        className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-all transform -translate-y-2 group-hover:translate-y-0 text-[10px] font-black px-3.5 py-2 rounded-xl pointer-events-none whitespace-nowrap shadow-2xl z-30 border"
+                        style={{ 
+                          background: dark ? '#0a0a0e' : '#111827', 
+                          borderColor: dark ? '#323246' : '#374151',
+                          color: '#ffffff'
+                        }}
+                      >
+                        {d.views} pageviews · {d.uniques} visitors
                       </div>
-                      {/* Bar */}
+                      
+                      {/* Pageviews bar */}
                       <motion.div 
                         initial={{ height: 0 }}
-                        animate={{ height: d.count > 0 ? `${(d.count / maxVisits) * 100}%` : '6px' }}
-                        transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
-                        className={`w-full max-w-[36px] rounded-t-xl group-hover:brightness-110 transition-all cursor-pointer relative ${
-                          d.count > 0 
-                            ? 'bg-gradient-to-t from-[#6a35ff] to-[#00c2cb] shadow-[0_0_20px_rgba(106,53,255,0.2)]' 
-                            : 'bg-[#6a35ff]/10'
+                        animate={{ height: d.views > 0 ? `${(d.views / maxViews) * 100}%` : '6px' }}
+                        transition={{ duration: 0.8, delay: i * 0.05 }}
+                        className={`w-full max-w-[28px] rounded-t-xl group-hover:brightness-125 transition-all ${
+                          d.views > 0 
+                            ? 'bg-gradient-to-t from-[#6a35ff] to-[#8b5cf6] shadow-[0_4px_16px_rgba(106,53,255,0.3)]' 
+                            : dark ? 'bg-white/5' : 'bg-gray-100'
+                        }`}
+                      />
+
+                      {/* Uniques bar */}
+                      <motion.div 
+                        initial={{ height: 0 }}
+                        animate={{ height: d.uniques > 0 ? `${(d.uniques / maxViews) * 100}%` : '4px' }}
+                        transition={{ duration: 0.8, delay: (i * 0.05) + 0.1 }}
+                        className={`w-full max-w-[18px] rounded-t-lg group-hover:brightness-125 transition-all ${
+                          d.uniques > 0 
+                            ? 'bg-gradient-to-t from-[#00c2cb] to-[#38bdf8] shadow-[0_4px_16px_rgba(0,194,203,0.3)]' 
+                            : dark ? 'bg-white/5' : 'bg-gray-100'
                         }`}
                       />
                     </div>
@@ -843,114 +1101,311 @@ const AnalyticsPage = ({ posts }) => {
               </div>
               
               {/* X-Axis Labels */}
-              <div className="absolute inset-x-0 bottom-0 flex justify-between gap-2 sm:gap-6 pl-10 pr-2 pt-3 border-t border-gray-100">
+              <div 
+                className="absolute inset-x-0 bottom-0 flex justify-between gap-2 sm:gap-4 pl-10 pr-2 pt-3 border-t"
+                style={{ borderColor: t.cardBorder }}
+              >
                 {chartData.map((d, i) => (
-                  <div key={i} className="flex-1 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest truncate">
-                    {d.date.split('/')[0]}/{d.date.split('/')[1]}
+                  <div 
+                    key={i} 
+                    className="flex-1 text-center text-[9px] font-black uppercase tracking-widest truncate"
+                    style={{ color: t.textMuted }}
+                  >
+                    {d.date}
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Top Blog Posts by Views */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
-              <h2 className="text-lg font-black text-gray-900 tracking-tight mb-6 flex items-center gap-3"><TrendingUp size={18} className="text-[#6a35ff]"/>Top Articles</h2>
-              {topPost.length === 0 ? (
-                <p className="text-gray-400 font-bold text-sm text-center py-8">No article views yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {topPost.map((p,i) => (
-                    <div key={p.id}>
-                      <div className="flex justify-between mb-1.5">
-                        <span className="text-sm font-black text-gray-700 truncate max-w-[70%]">{p.title}</span>
-                        <span className="text-xs font-black text-[#6a35ff]">{p.views || 0} views</span>
-                      </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#6a35ff] to-[#00c2cb] rounded-full transition-all" style={{width:`${((p.views||0)/maxViews)*100}%`}}/>
-                      </div>
-                    </div>
-                  ))}
+          {/* Acquisition Channels & Top Landing Pages */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Acquisition Channels */}
+            <div 
+              className="rounded-[2.5rem] border shadow-sm p-8 flex flex-col transition-all"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-black tracking-tight flex items-center gap-3" style={{ color: t.text }}>
+                    <Share2 size={18} className="text-[#6a35ff]"/> Traffic Acquisition
+                  </h2>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: t.textMuted }}>Where visitors come from</p>
                 </div>
-              )}
+              </div>
+
+              <div className="space-y-3.5 flex-1">
+                {channelList.length === 0 ? (
+                  <p className="text-sm font-bold py-10 text-center" style={{ color: t.textMuted }}>No traffic channel data recorded yet.</p>
+                ) : (
+                  channelList.map(([channel, count]) => {
+                    const percentage = Math.round((count / (filteredVisits.length || 1)) * 100);
+                    return (
+                      <div 
+                        key={channel} 
+                        className="p-4 rounded-2xl border transition-all duration-200 hover:scale-[1.01]"
+                        style={{ background: itemBg, borderColor: itemBorder }}
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-black text-sm" style={{ color: t.text }}>{channel}</span>
+                          <span className="text-xs font-black text-[#6a35ff]">{count} sessions ({percentage}%)</span>
+                        </div>
+                        <div 
+                          className="h-2 rounded-full overflow-hidden"
+                          style={{ background: dark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }}
+                        >
+                          <div 
+                            className="h-full bg-gradient-to-r from-[#6a35ff] to-[#00c2cb] rounded-full transition-all duration-700" 
+                            style={{ width: `${percentage}%` }} 
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
-            {/* Visits by Country */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
-              <h2 className="text-lg font-black text-gray-900 tracking-tight mb-6 flex items-center gap-3"><Globe size={18} className="text-[#00c2cb]"/>Visits by Country</h2>
-              {countryList.length === 0 ? (
-                <p className="text-gray-400 font-bold text-sm text-center py-8">No location data yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {countryList.map(([country, count],i) => (
-                    <div key={country}>
-                      <div className="flex justify-between mb-1.5">
-                        <span className="text-sm font-black text-gray-700">{country}</span>
-                        <span className="text-xs font-black text-[#00c2cb]">{count}</span>
+            {/* Top Landing Pages */}
+            <div 
+              className="rounded-[2.5rem] border shadow-sm p-8 flex flex-col transition-all"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-black tracking-tight flex items-center gap-3" style={{ color: t.text }}>
+                    <Eye size={18} className="text-[#00c2cb]"/> Top Visited Pages
+                  </h2>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: t.textMuted }}>Most viewed URLs & paths</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-[380px] pr-1">
+                {pageList.length === 0 ? (
+                  <p className="text-sm font-bold py-10 text-center" style={{ color: t.textMuted }}>No pageview data yet.</p>
+                ) : (
+                  pageList.slice(0, 7).map((p) => (
+                    <div 
+                      key={p.url} 
+                      className="p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all duration-200 hover:scale-[1.01]"
+                      style={{ background: itemBg, borderColor: itemBorder }}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="font-mono text-xs font-black truncate" style={{ color: t.text }}>{p.url}</div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: t.textMuted }}>
+                          Avg Time: {fmtTime(p.avgTime)}
+                        </div>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#00c2cb] to-[#6a35ff] rounded-full" style={{width:`${(count/maxCountry)*100}%`}}/>
+                      <div 
+                        className="px-3.5 py-1.5 font-black text-xs rounded-xl border shrink-0"
+                        style={{ 
+                          background: dark ? '#0d2830' : '#e0f7fa', 
+                          color: '#00c2cb', 
+                          borderColor: dark ? '#134e5e' : '#b2ebf2' 
+                        }}
+                      >
+                        {p.count} view{p.count > 1 ? 's' : ''}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Device & Page breakdown */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
-              <h2 className="text-lg font-black text-gray-900 tracking-tight mb-6 flex items-center gap-3"><MonitorSmartphone size={18} className="text-orange-500]"/>Devices</h2>
+          {/* Geography & Technology Breakdown */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Countries */}
+            <div 
+              className="rounded-[2.5rem] border shadow-sm p-8 transition-all"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <h2 className="text-lg font-black tracking-tight mb-5 flex items-center gap-3" style={{ color: t.text }}>
+                <Globe size={18} className="text-emerald-500" /> Geography
+              </h2>
+              <div className="space-y-3.5">
+                {countryList.length === 0 ? (
+                  <p className="text-xs font-bold py-6 text-center" style={{ color: t.textMuted }}>No geolocation data yet.</p>
+                ) : (
+                  countryList.slice(0, 6).map(([country, count]) => {
+                    const perc = Math.round((count / (filteredVisits.length || 1)) * 100);
+                    return (
+                      <div key={country} className="p-3 rounded-2xl border" style={{ background: itemBg, borderColor: itemBorder }}>
+                        <div className="flex justify-between text-xs font-black mb-1.5">
+                          <span className="truncate max-w-[70%]" style={{ color: t.text }}>{country}</span>
+                          <span style={{ color: t.textMuted }}>{count} ({perc}%)</span>
+                        </div>
+                        <div 
+                          className="h-1.5 rounded-full overflow-hidden"
+                          style={{ background: dark ? 'rgba(255,255,255,0.08)' : '#e5e7eb' }}
+                        >
+                          <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${perc}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Devices & OS */}
+            <div 
+              className="rounded-[2.5rem] border shadow-sm p-8 transition-all"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <h2 className="text-lg font-black tracking-tight mb-5 flex items-center gap-3" style={{ color: t.text }}>
+                <MonitorSmartphone size={18} className="text-purple-500" /> Devices & OS
+              </h2>
               <div className="space-y-4">
-                {Object.entries(byDevice).map(([device, count]) => (
-                  <div key={device} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                    <span className="font-black text-gray-900 text-sm">{device}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-black text-gray-400">{Math.round((count/visits.length)*100)}%</span>
-                      <span className="text-sm font-black text-[#6a35ff]">{count}</span>
-                    </div>
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Device Type</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Desktop', 'Mobile', 'Tablet'].map(d => (
+                      <div 
+                        key={d} 
+                        className="p-3 rounded-xl text-center border transition-all"
+                        style={{ background: itemBg, borderColor: itemBorder }}
+                      >
+                        <div className="text-[9px] font-black uppercase" style={{ color: t.textMuted }}>{d}</div>
+                        <div className="text-sm font-black mt-0.5" style={{ color: t.text }}>{deviceCounts[d] || 0}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                <div className="space-y-2 pt-3 border-t" style={{ borderColor: t.cardBorder }}>
+                  <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Operating System</span>
+                  <div className="space-y-2">
+                    {Object.entries(osCounts).slice(0, 4).map(([os, count]) => (
+                      <div 
+                        key={os} 
+                        className="flex items-center justify-between text-xs px-3.5 py-2 rounded-xl border"
+                        style={{ background: itemBg, borderColor: itemBorder }}
+                      >
+                        <span className="font-bold" style={{ color: t.text }}>{os}</span>
+                        <span className="font-black text-[#6a35ff]">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
-              <h2 className="text-lg font-black text-gray-900 tracking-tight mb-6 flex items-center gap-3"><Eye size={18} className="text-green-500"/>Top Pages</h2>
+            {/* Browsers */}
+            <div 
+              className="rounded-[2.5rem] border shadow-sm p-8 transition-all"
+              style={{ background: t.card, borderColor: t.cardBorder }}
+            >
+              <h2 className="text-lg font-black tracking-tight mb-5 flex items-center gap-3" style={{ color: t.text }}>
+                <Activity size={18} className="text-orange-500" /> Browsers
+              </h2>
               <div className="space-y-3">
-                {pageList.map(([page, count]) => (
-                  <div key={page} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                    <span className="font-bold text-gray-600 text-sm truncate max-w-[70%]">{page}</span>
-                    <span className="text-sm font-black text-[#00c2cb]">{count}</span>
-                  </div>
-                ))}
+                {Object.entries(browserCounts).length === 0 ? (
+                  <p className="text-xs font-bold py-6 text-center" style={{ color: t.textMuted }}>No browser data yet.</p>
+                ) : (
+                  Object.entries(browserCounts).slice(0, 6).map(([browser, count]) => {
+                    const perc = Math.round((count / (filteredVisits.length || 1)) * 100);
+                    return (
+                      <div 
+                        key={browser} 
+                        className="flex items-center justify-between p-3.5 rounded-xl border transition-all"
+                        style={{ background: itemBg, borderColor: itemBorder }}
+                      >
+                        <span className="font-black text-xs" style={{ color: t.text }}>{browser}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold" style={{ color: t.textMuted }}>{perc}%</span>
+                          <span className="text-xs font-black text-orange-500">{count}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
 
-          {/* Recent Sessions */}
-          <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-gray-50">
-              <h2 className="text-lg font-black text-gray-900 tracking-tight">Recent Sessions</h2>
+          {/* Live Visitor Sessions Log (GA4 Realtime Feed) */}
+          <div 
+            className="rounded-[3rem] border shadow-sm overflow-hidden transition-all"
+            style={{ background: t.card, borderColor: t.cardBorder }}
+          >
+            <div className="p-8 md:p-10 border-b flex items-center justify-between" style={{ borderColor: t.cardBorder }}>
+              <div>
+                <h2 className="text-2xl font-black tracking-tight" style={{ color: t.text }}>Recent Visitor Sessions</h2>
+                <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: t.textMuted }}>Live audit log of incoming traffic</p>
+              </div>
+              <span 
+                className="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl border"
+                style={{ 
+                  background: dark ? '#26194d' : '#f3e8ff', 
+                  color: '#a78bfa',
+                  borderColor: dark ? '#3e2480' : '#e9d5ff' 
+                }}
+              >
+                Showing Last {Math.min(filteredVisits.length, 30)}
+              </span>
             </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead><tr className="border-b border-gray-50">
-                  {['Country','City','Device','Browser','Page','Time on Site','Date'].map(h => (
-                    <th key={h} className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-gray-400">{h}</th>
-                  ))}
-                </tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {visits.slice(0, 20).map(v => (
-                    <tr key={v.id} className="hover:bg-gray-50/50 transition-all">
-                      <td className="px-6 py-4 text-sm font-bold text-gray-700">{v.country || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500 font-medium">{v.city || '—'}</td>
-                      <td className="px-6 py-4"><span className="px-2.5 py-1 bg-purple-50 text-[9px] font-black uppercase text-[#6a35ff] rounded-full">{v.device||'Desktop'}</span></td>
-                      <td className="px-6 py-4 text-sm text-gray-500 font-medium">{v.browser || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500 font-mono">{v.page || '/'}</td>
-                      <td className="px-6 py-4 text-sm font-black text-[#00c2cb]">{v.timeOnSite > 0 ? fmtTime(v.timeOnSite) : '—'}</td>
-                      <td className="px-6 py-4 text-xs text-gray-400 font-bold">{v.createdAt?.seconds ? new Date(v.createdAt.seconds*1000).toLocaleString() : '—'}</td>
+                <thead>
+                  <tr className="border-b" style={{ borderColor: t.cardBorder, background: dark ? 'rgba(255,255,255,0.02)' : '#f9fafb' }}>
+                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Location</th>
+                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Source / Channel</th>
+                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Device / OS</th>
+                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Current Page</th>
+                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest" style={{ color: t.textMuted }}>Engagement</th>
+                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-right" style={{ color: t.textMuted }}>Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y text-xs font-medium" style={{ borderColor: t.cardBorder }}>
+                  {filteredVisits.slice(0, 30).map((v) => (
+                    <tr 
+                      key={v.id} 
+                      className="transition-colors"
+                      style={{ borderColor: t.cardBorder }}
+                      onMouseEnter={e => e.currentTarget.style.background = t.hover}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <td className="px-8 py-5">
+                        <div className="font-black" style={{ color: t.text }}>{v.country || 'Unknown'}</div>
+                        <div className="text-[10px] font-bold" style={{ color: t.textMuted }}>{v.city || '—'}</div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <span 
+                          className="px-3 py-1 font-black text-[9px] uppercase tracking-widest rounded-full border"
+                          style={{ 
+                            background: dark ? '#26194d' : '#f3e8ff', 
+                            color: '#a78bfa',
+                            borderColor: dark ? '#3e2480' : '#e9d5ff'
+                          }}
+                        >
+                          {v.channel || v.trafficType || 'Direct'}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="font-bold" style={{ color: t.text }}>{v.device || 'Desktop'} · {v.os || '—'}</div>
+                        <div className="text-[10px] font-medium" style={{ color: t.textMuted }}>{v.browser || '—'}</div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <span 
+                          className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg border"
+                          style={{ 
+                            background: itemBg, 
+                            borderColor: itemBorder,
+                            color: t.text 
+                          }}
+                        >
+                          {v.page || '/'}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="font-black text-[#00c2cb]">{fmtTime(v.timeOnSite)}</div>
+                        <div className="text-[10px]" style={{ color: t.textMuted }}>{v.pageviews || 1} pageview{v.pageviews > 1 ? 's' : ''}</div>
+                      </td>
+                      <td className="px-8 py-5 text-right font-bold" style={{ color: t.textMuted }}>
+                        {v.createdAt?.seconds ? new Date(v.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -965,6 +1420,7 @@ const AnalyticsPage = ({ posts }) => {
 
 // --- Settings Page ---
 const SettingsPage = () => {
+  const { t, dark } = React.useContext(ThemeCtx);
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -976,11 +1432,19 @@ const SettingsPage = () => {
   const [newPassword, setNewPassword] = useState('');
   const [passLoading, setPassLoading] = useState(false);
 
+  const [adminExcluded, setAdminExcluded] = useState(() => statsService.isAdminDevice());
+
   useEffect(() => {
     chatService.getTraining().then(data => {
       setAgentPrompt(data.systemPrompt || chatService.getDefaultPrompt());
     });
   }, []);
+
+  const handleToggleAdminDevice = () => {
+    const nextState = !adminExcluded;
+    statsService.setAdminDevice(nextState);
+    setAdminExcluded(nextState);
+  };
 
   const handleSavePrompt = async () => {
     setSavingPrompt(true);
@@ -1023,7 +1487,6 @@ const SettingsPage = () => {
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
-          // User didn't cancel
           const blob = new Blob([xml], { type: 'text/xml' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -1042,15 +1505,13 @@ const SettingsPage = () => {
   const handleResetAnalytics = async () => {
     if (!confirmReset) {
       setConfirmReset(true);
-      setTimeout(() => setConfirmReset(false), 3000); // Reset confirmation state after 3s
+      setTimeout(() => setConfirmReset(false), 3000);
       return;
     }
 
-    console.log("Reset starting...");
     setResetting(true);
     try {
       await statsService.resetAnalytics();
-      console.log("Reset successful");
       alert("Analytics have been reset successfully.");
       setConfirmReset(false);
     } catch (error) {
@@ -1058,7 +1519,6 @@ const SettingsPage = () => {
       alert("Error resetting analytics: " + error.message);
     } finally {
       setResetting(false);
-      console.log("Reset process finished");
     }
   };
 
@@ -1084,21 +1544,67 @@ const SettingsPage = () => {
   return (
     <div className="space-y-12">
       <header>
-        <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-2">Settings</h1>
-        <p className="text-gray-500 font-medium">Control and configure your dashboard.</p>
+        <h1 className="text-4xl font-black tracking-tighter mb-2" style={{ color: t.text }}>Settings</h1>
+        <p className="font-medium text-sm" style={{ color: t.textMuted }}>Control, privacy, and system configurations.</p>
       </header>
 
-      <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm p-10 space-y-10">
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
+      <div 
+        className="rounded-[3rem] border shadow-sm p-8 md:p-10 space-y-10 transition-all"
+        style={{ background: t.card, borderColor: t.cardBorder }}
+      >
+        {/* Admin Device Privacy / Analytics Filter */}
+        <section className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight">Search Engine Optimization</h3>
-              <p className="text-sm text-gray-400 font-medium mt-1">Generate a fresh sitemap.xml to notify Google of new articles and projects.</p>
+              <div className="flex items-center gap-3 mb-1">
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: dark ? '#26194d' : '#f3e8ff', color: '#6a35ff' }}
+                >
+                  <Shield size={20} />
+                </div>
+                <h3 className="text-xl font-black tracking-tight" style={{ color: t.text }}>
+                  Admin Device Privacy & Analytics Filter
+                </h3>
+              </div>
+              <p className="text-sm font-medium mt-2 max-w-xl" style={{ color: t.textMuted }}>
+                Automatically prevents your own testing, visits, and pageviews from polluting site analytics. When active, this device is 100% invisible to visitor tracking.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${adminExcluded ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: adminExcluded ? '#10b981' : '#f59e0b' }}>
+                  {adminExcluded ? 'Active — This device is EXCLUDED from analytics' : 'Inactive — This device is currently being tracked'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleToggleAdminDevice}
+              className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-3 shrink-0 ${
+                adminExcluded 
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20' 
+                  : 'bg-[#6a35ff] hover:bg-purple-600 text-white shadow-purple-500/20'
+              }`}
+            >
+              <Shield size={16} />
+              {adminExcluded ? '✓ Device Excluded (Protected)' : 'Exclude This Device Now'}
+            </button>
+          </div>
+        </section>
+
+        <div className="h-[1px] w-full" style={{ background: t.cardBorder }} />
+
+        {/* SEO Sitemap */}
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div>
+              <h3 className="text-xl font-black tracking-tight" style={{ color: t.text }}>Search Engine Optimization</h3>
+              <p className="text-sm font-medium mt-1" style={{ color: t.textMuted }}>Generate a fresh sitemap.xml to notify Google of new articles and projects.</p>
             </div>
             <button 
               onClick={handleGenerateSitemap}
               disabled={generating}
-              className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 hover:-translate-y-1 transition-all shadow-xl shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-3"
+              className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 hover:-translate-y-1 transition-all shadow-xl shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-3 shrink-0"
             >
               {generating ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
               Generate Sitemap.xml
@@ -1106,18 +1612,19 @@ const SettingsPage = () => {
           </div>
         </section>
 
-        <div className="h-[1px] bg-gray-50 w-full" />
+        <div className="h-[1px] w-full" style={{ background: t.cardBorder }} />
 
+        {/* Reset Analytics */}
         <section className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight">Reset Analytics</h3>
-              <p className="text-sm text-gray-400 font-medium mt-1">Clear all visitor history and reset the global visit counter.</p>
+              <h3 className="text-xl font-black tracking-tight" style={{ color: t.text }}>Reset Analytics</h3>
+              <p className="text-sm font-medium mt-1" style={{ color: t.textMuted }}>Clear all previous test visits and reset visitor history cleanly.</p>
             </div>
             <button 
               onClick={handleResetAnalytics}
               disabled={resetting}
-              className={`px-8 py-4 ${confirmReset ? 'bg-red-600 animate-pulse' : 'bg-rose-500'} text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:-translate-y-1 transition-all shadow-xl shadow-rose-500/20 disabled:opacity-50 flex items-center gap-3`}
+              className={`px-8 py-4 ${confirmReset ? 'bg-red-600 animate-pulse' : 'bg-rose-500'} text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:-translate-y-1 transition-all shadow-xl shadow-rose-500/20 disabled:opacity-50 flex items-center gap-3 shrink-0`}
             >
               {resetting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
               {confirmReset ? "Click Again to Confirm" : "Reset All Analytics"}
@@ -1125,14 +1632,13 @@ const SettingsPage = () => {
           </div>
         </section>
 
-        <div className="h-[1px] bg-gray-50 w-full" />
+        <div className="h-[1px] w-full" style={{ background: t.cardBorder }} />
 
+        {/* Security / Password */}
         <section className="space-y-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight">Security</h3>
-              <p className="text-sm text-gray-400 font-medium mt-1">Change your account password.</p>
-            </div>
+          <div>
+            <h3 className="text-xl font-black tracking-tight" style={{ color: t.text }}>Security</h3>
+            <p className="text-sm font-medium mt-1" style={{ color: t.textMuted }}>Change your account password.</p>
           </div>
           <form onSubmit={handleUpdatePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input 
@@ -1140,14 +1646,16 @@ const SettingsPage = () => {
               placeholder="Current Password" 
               value={oldPassword}
               onChange={e => setOldPassword(e.target.value)}
-              className="p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-[#6a35ff] text-sm font-semibold text-gray-900"
+              className="p-4 rounded-2xl border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#6a35ff]"
+              style={{ background: t.input, borderColor: t.inputBorder, color: t.text }}
             />
             <input 
               type="password" 
               placeholder="New Password" 
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
-              className="p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-[#6a35ff] text-sm font-semibold text-gray-900"
+              className="p-4 rounded-2xl border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#6a35ff]"
+              style={{ background: t.input, borderColor: t.inputBorder, color: t.text }}
             />
             <button 
               type="submit"
@@ -1159,26 +1667,26 @@ const SettingsPage = () => {
           </form>
         </section>
 
-        <div className="h-[1px] bg-gray-50 w-full" />
+        <div className="h-[1px] w-full" style={{ background: t.cardBorder }} />
 
         {/* Agent Training Section */}
         <section className="space-y-6">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
             <div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+              <h3 className="text-xl font-black tracking-tight flex items-center gap-3" style={{ color: t.text }}>
                 <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6a35ff] to-[#00c2cb] flex items-center justify-center">
                   <MessageCircle size={16} className="text-white" />
                 </span>
                 Train Dex AI Agent
               </h3>
-              <p className="text-sm text-gray-400 font-medium mt-2 max-w-lg">
+              <p className="text-sm font-medium mt-2 max-w-lg" style={{ color: t.textMuted }}>
                 Edit the agent's personality, knowledge, and behaviour. This is the "brain" of Dex — the more detail you add, the smarter it becomes.
               </p>
             </div>
             <button
               onClick={handleSavePrompt}
               disabled={savingPrompt}
-              className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all hover:-translate-y-1 shadow-xl disabled:opacity-50 ${
+              className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all hover:-translate-y-1 shadow-xl disabled:opacity-50 shrink-0 ${
                 promptSaved 
                   ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
                   : 'bg-[#6a35ff] text-white shadow-purple-500/20'
@@ -1196,30 +1704,37 @@ const SettingsPage = () => {
             <textarea
               value={agentPrompt}
               onChange={(e) => setAgentPrompt(e.target.value)}
-              className="w-full pt-12 p-6 bg-gray-900 text-green-400 font-mono text-xs rounded-3xl border-none focus:ring-2 focus:ring-[#6a35ff] min-h-[400px] resize-none leading-relaxed"
+              className="w-full pt-12 p-6 bg-gray-900 text-green-400 font-mono text-xs rounded-3xl border border-gray-800 focus:ring-2 focus:ring-[#6a35ff] min-h-[400px] resize-none leading-relaxed"
               spellCheck={false}
             />
           </div>
 
-          <div className="p-6 bg-amber-50 border border-amber-100 rounded-2xl">
-            <p className="text-xs font-bold text-amber-700">
+          <div 
+            className="p-6 rounded-2xl border"
+            style={{ 
+              background: dark ? 'rgba(245, 158, 11, 0.08)' : '#fffbeb', 
+              borderColor: dark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7' 
+            }}
+          >
+            <p className="text-xs font-bold text-amber-500">
               💡 <strong>Pro Tips:</strong> Add your team's names, real case studies, or FAQs to make Dex even smarter. The agent reads this before every conversation.
             </p>
           </div>
         </section>
 
-        <div className="h-[1px] bg-gray-50 w-full" />
+        <div className="h-[1px] w-full" style={{ background: t.cardBorder }} />
 
+        {/* System Info */}
         <section className="space-y-4">
-          <h3 className="text-xl font-black text-gray-900 tracking-tight">System Info</h3>
+          <h3 className="text-xl font-black tracking-tight" style={{ color: t.text }}>System Info</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-gray-50 rounded-2xl">
-              <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Environment</div>
-              <div className="font-black text-xs uppercase tracking-tight text-gray-900">Production Mode</div>
+            <div className="p-4 rounded-2xl border" style={{ background: dark ? '#161622' : '#f9fafb', borderColor: t.cardBorder }}>
+              <div className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: t.textMuted }}>Environment</div>
+              <div className="font-black text-xs uppercase tracking-tight" style={{ color: t.text }}>Production Mode</div>
             </div>
-            <div className="p-4 bg-gray-50 rounded-2xl">
-              <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Version</div>
-              <div className="font-black text-xs uppercase tracking-tight text-gray-900">v2.1.0-editorial</div>
+            <div className="p-4 rounded-2xl border" style={{ background: dark ? '#161622' : '#f9fafb', borderColor: t.cardBorder }}>
+              <div className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: t.textMuted }}>Version</div>
+              <div className="font-black text-xs uppercase tracking-tight" style={{ color: t.text }}>v2.1.0-editorial</div>
             </div>
           </div>
         </section>

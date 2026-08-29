@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectService } from '../services/projectService';
-import { auth } from '../firebaseConfig';
+import { auth, storage } from '../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { 
   ArrowLeft, Save, Loader2, Image as ImageIcon, 
@@ -9,9 +9,9 @@ import {
   Briefcase, MapPin, Activity, FileText, Target, Zap, Globe
 } from 'lucide-react';
 import RichTextEditor from '../components/RichTextEditor';
+import imageCompression from 'browser-image-compression';
 
-const CLOUDINARY_CLOUD_NAME = "dvjpw2pqh";
-const CLOUDINARY_UPLOAD_PRESET = "ml_default";
+const IMGBB_API_KEY = "3bde4002f57762e1e1ca9dc45a90b80b";
 
 const ProjectEditorPage = () => {
   const { id } = useParams();
@@ -136,24 +136,28 @@ const ProjectEditorPage = () => {
 
     setSaving(true);
     try {
+      const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1200, useWebWorker: false };
+      const compressedFile = await imageCompression(file, options);
+      
       const fd = new FormData();
-      fd.append('file', file);
-      fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      fd.append('image', compressedFile);
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
         method: 'POST',
         body: fd
       });
 
       if (!response.ok) throw new Error('Image upload failed');
       
-      const data = await response.json();
+      const responseData = await response.json();
+      const url = responseData.data.url;
+      
       if (type === 'gallery') {
-        setFormData(prev => ({ ...prev, gallery: [...prev.gallery, data.secure_url] }));
+        setFormData(prev => ({ ...prev, gallery: [...prev.gallery, url] }));
       } else if (type === 'mockup') {
-        setFormData(prev => ({ ...prev, mockupImage: data.secure_url }));
+        setFormData(prev => ({ ...prev, mockupImage: url }));
       } else {
-        setFormData(prev => ({ ...prev, image: data.secure_url }));
+        setFormData(prev => ({ ...prev, image: url }));
       }
     } catch (err) {
       console.error("Upload error:", err);

@@ -41,6 +41,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://devlyxsolutions.com/projects/mandimate</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://devlyxsolutions.com/projects/logo-designing</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -52,6 +57,11 @@
   </url>
   <url>
     <loc>https://devlyxsolutions.com/projects/social-media-post-design</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://devlyxsolutions.com/projects/pharmaflow</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -202,11 +212,6 @@
   </url>
   <url>
     <loc>https://devlyxsolutions.com/projects/pinnacle-builder-construction-renovation-social-acquisition</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://devlyxsolutions.com/projects/qistkhata-recovery-pro</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

@@ -5,33 +5,24 @@ import {
   query, 
   orderBy, 
   onSnapshot, 
-  serverTimestamp,
-  updateDoc,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  limit,
-  deleteDoc,
-  writeBatch
+  serverTimestamp, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  limit, 
+  writeBatch 
 } from "firebase/firestore";
 import { leadService } from "./leadService";
 
 // ─────────────────────────────────────────────────────────────
-// AI PROVIDERS (Groq primary → Gemini fallback → keyword fallback)
+// AI PROVIDERS CONFIG
 // ─────────────────────────────────────────────────────────────
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_AVAILABLE = !!(GROQ_API_KEY && GROQ_API_KEY.startsWith('gsk_'));
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-const GEMINI_AVAILABLE = !!(GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here');
+const GEMINI_URL = (key) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
 
 // ─────────────────────────────────────────────────────────────
-// SYSTEM PROMPT — Agent Personality & Business Knowledge
-// This is the "brain" that makes the agent smart
-// You can edit this from Dashboard > Agent Training
+// SYSTEM PROMPT — Agent Personality & Knowledge
 // ─────────────────────────────────────────────────────────────
 const DEFAULT_SYSTEM_PROMPT = `You are "Dex" — the smart, friendly AI sales agent for Devlyx Solutions, a premium software agency.
 
@@ -48,95 +39,205 @@ const DEFAULT_SYSTEM_PROMPT = `You are "Dex" — the smart, friendly AI sales ag
 - Contact: devlyxsolutions@gmail.com | devlyxsolutions.com
 
 ## Your Goal (Lead Qualification Flow):
-Guide every visitor naturally through these steps WITHOUT being pushy or giving flat, rushed answers:
-1. Understand their business: If they say "I need a website", ASK them what type of business they run, what their core services are, or what industry they are in BEFORE jumping to pricing.
-2. Understand what they want to build (their specific goals and features).
+Guide every visitor naturally through these steps:
+1. Understand their business / industry.
+2. Understand what they want to build (features/goals).
 3. Understand their budget range.
-4. When you have enough details, append exactly [SHOW_FORM] to your reply. This will automatically open a secure contact form inside their chat bubble.
+4. When you have enough details or when the user asks for a form/contact, append exactly [SHOW_FORM] to your reply.
 
 ## IMPORTANT TAGS (You MUST use these when a step is complete):
-- When you fully understand their business AND project goals, append [GOT_GOALS] at the very end of your reply.
-- When the user clearly states their budget, append [GOT_BUDGET] at the very end of your reply.
-- When you have guided the user through the qualifications and want them to fill their details, append [SHOW_FORM] at the very end of your reply.
-- (If they manually type their email or phone instead of using the form, you can append [LEAD_COLLECTED] at the very end of your reply).
+- When you understand their business, append [GOT_BUSINESS] at the very end of your reply.
+- When you understand their project goals, append [GOT_GOALS] at the very end of your reply.
+- When the user states their budget, append [GOT_BUDGET] at the very end of your reply.
+- When you want them to fill their details, append [SHOW_FORM] at the very end of your reply.
+- When user provides contact info in chat, append [LEAD_COLLECTED] at the very end of your reply.
 
 ## Rules:
-- Answer any question the visitor asks first, THEN gently steer toward the next step.
-- Do NOT give flat pricing answers immediately. Ask about their business first to provide a tailored response.
-- Never make up fake portfolio items or client names.
-- Keep answers SHORT — do not write essays.`;
+- Answer questions directly first, then advance the conversation.
+- Never repeat the same response twice in a row.
+- Keep answers concise and engaging.`;
 
 // ─────────────────────────────────────────────────────────────
-// FALLBACK (when no Gemini key — keyword based)
+// SMART CONVERSATIONAL HEURISTICS ENGINE (Fallback / Offline)
 // ─────────────────────────────────────────────────────────────
-const fallbackReply = (text, state) => {
-  const t = text.toLowerCase();
-  // Greetings
-  if (/hello|hi|hey|salam|assalam|howdy/.test(t)) 
-    return "Hello! 👋 I'm Dex, Devlyx's AI assistant! What kind of business do you run, and what can I help you build today?";
-  // Company / About
-  if (/company|about|who are|devlyx|tell me about|agency|team/.test(t))
-    return "Devlyx Solutions is a premium software engineering agency 🚀\n\nWe build Mobile Apps, Web Platforms, SaaS products, and AI solutions. Tell me a bit about your business, so I can explain how we can help you!";
-  // Website / Web project
-  if (/web|website|site|landing/.test(t))
-    return "That's a great step for your business! 🌐 To give you the best advice, could you tell me a little bit about what your business does and who your target audience is?";
-  // Mobile app
-  if (/app|mobile|ios|android|flutter/.test(t))
-    return "Awesome! 📱 We build powerful native iOS & Android apps. Before we dive into details, what industry is your app for, and what's its main purpose?";
-  // Pricing
-  if (/price|cost|budget|kitna|how much|charges/.test(t))
-    return "Our pricing depends heavily on your specific needs (e.g., Websites start at $800, Apps at $2500). 💰 To give you an accurate idea, what exactly does your business do, and what features do you need?";
-  // Services
-  if (/service|offer|kia krty|what do|speciali/.test(t))
-    return "We offer: 🛠️\n📱 Mobile Apps (iOS/Android)\n🌐 Web Platforms & SaaS\n🤖 AI & Automation Solutions\n🎨 UI/UX Design\n\nTell me about your business so I can suggest the right service for you.";
-  // Timeline
-  if (/time|kitny din|how long|deadline|timeline|week|month/.test(t))
-    return "Timelines vary (e.g., 1-2 weeks for a landing page, 6-10 weeks for an app). ⏱️ Could you briefly describe your business and the core features you need so I can give a better estimate?";
-  // Contact
-  if (/contact|reach|email|phone|whatsapp|call/.test(t))
-    return "You can reach us at: 📬\n✉️ devlyxsolutions@gmail.com\n🌐 devlyxsolutions.com/contact\n\nOr share YOUR contact info and we'll reach out within 24 hours!";
-  // Portfolio / Projects
-  if (/portfolio|project|work|example|case study|sample/.test(t))
-    return "Check out our portfolio at devlyxsolutions.com/projects 🎯 We've built platforms for various industries. What industry is your business in?";
-  // Build / Start
-  if (/build|create|develop|make|want|need|start/.test(t))
-    return "Exciting! 🔥 Tell me more about your business — what industry are you in, and what problem are you trying to solve with this new project?";
+function getSmartFallbackResponse(userText, state, aiData, history = []) {
+  const t = userText.trim().toLowerCase();
+  let reply = "";
+  let newState = state || 'AWAITING_BUSINESS_TYPE';
+  let newAiData = { ...aiData };
 
-  // Flow-based fallback
-  const flowReplies = {
-    AWAITING_GOALS: "I'd love to help! 😊 To start, could you tell me a bit about what your business does?",
-    AWAITING_BUDGET: "Got it! Since the scope is clearer, what rough budget range do you have in mind for this project?",
-    AWAITING_CONTACT: "Perfect! Please share your email or WhatsApp number so our technical team can reach out to you with a tailored plan. 📬",
-    COMPLETED: "You're all set! Our team will be in touch within 24 hours. 🚀",
-  };
-  return flowReplies[state] || "Happy to help! Could you tell me a little bit about your business and what you're looking to achieve? 😊";
-};
+  // 1. Check if user typed contact info directly (email or phone)
+  const hasEmail = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i.test(t);
+  const hasPhone = /(\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9})/.test(t);
+  if (hasEmail || hasPhone) {
+    newAiData.contact = userText;
+    newState = 'COMPLETED';
+    return {
+      reply: "Thank you! I've recorded your contact details. 🚀 Our lead engineer will review your project and get in touch within 24 hours with a custom proposal! [LEAD_COLLECTED]",
+      newState,
+      newAiData
+    };
+  }
+
+  // 2. User explicitly asking for contact form, details submission, quote, or link
+  if (/form|submit|detail|fill|link|contact|rabta|email|phone|whatsapp|call|reach|number|kahan bhejun|bhejo|dikhao|send form|pop\s*up|quote|proposal/i.test(t)) {
+    newState = 'AWAITING_CONTACT';
+    return {
+      reply: "Here is our secure contact form! 📝 Please share your name and contact details, and our engineering team will reach out with a detailed proposal. [SHOW_FORM]",
+      newState,
+      newAiData
+    };
+  }
+
+  // 3. User Affirmations / Acknowledgements ("ok", "ok thats nice", "theek hai", "acha", "han", "yes", "sure", "great", "cool", "alright")
+  if (/^(ok|okay|ok thats nice|k|theek hai|thk hai|acha|achha|han|haa|yes|yup|yeah|sure|great|cool|alright|nice|done|sahi hai|fine|perfect)$/i.test(t)) {
+    if (!newAiData.businessType) {
+      newState = 'AWAITING_BUSINESS_TYPE';
+      reply = "Awesome! 😊 Could you tell me a little about your business or industry (e.g. Food & Restaurant, E-Commerce, Real Estate, Healthcare, Tech)?";
+    } else if (!newAiData.goals) {
+      newState = 'AWAITING_GOALS';
+      reply = `Great! 🚀 For your ${newAiData.businessType}, what type of digital solution are you planning to build (e.g., a Mobile App, Custom Website, or SaaS platform)?`;
+    } else if (!newAiData.budget) {
+      newState = 'AWAITING_BUDGET';
+      reply = "Got it! Do you have an estimated budget range or specific target launch date for this project? 💰";
+    } else {
+      newState = 'AWAITING_CONTACT';
+      reply = "Sounds perfect! Let's get your contact details so our team can send over a comprehensive plan. [SHOW_FORM]";
+    }
+    return { reply, newState, newAiData };
+  }
+
+  // 4. Greetings
+  if (/^(hello|hi|hey|salam|assalam|assalamu alaikum|aoa|howdy|kia hal|kese ho)/i.test(t)) {
+    if (!newAiData.businessType) {
+      newState = 'AWAITING_BUSINESS_TYPE';
+      reply = "Hello! 👋 I'm Dex, your Devlyx project consultant! What kind of business do you run, and what can we help you build today?";
+    } else {
+      reply = "Hello again! 👋 Let me know if you'd like to discuss features, pricing, or submit your project details!";
+    }
+    return { reply, newState, newAiData };
+  }
+
+  // 5. Company / About Devlyx
+  if (/company|about|who are|devlyx|tell me about|agency|team|experience/i.test(t)) {
+    reply = "Devlyx Solutions is a premier software engineering agency 🚀 We engineer scalable Mobile Apps (iOS/Android), Modern Web Platforms, SaaS products, and AI solutions.\n\nTell me a bit about your business so I can explain how we can create value for you!";
+    return { reply, newState, newAiData };
+  }
+
+  // 6. Services & Tech Stack
+  if (/service|offer|kia krty|what do you do|speciali|stack|technolog/i.test(t)) {
+    reply = "We offer end-to-end engineering: 🛠️\n📱 Mobile Apps (iOS, Android, Flutter, React Native)\n🌐 Web Platforms & Scalable SaaS (React, Next.js, Node, Firebase)\n🤖 AI & Workflow Automations\n🎨 High-end UI/UX Design\n\nWhich of these matches what you're looking to build?";
+    return { reply, newState, newAiData };
+  }
+
+  // 7. Portfolio / Case Studies
+  if (/portfolio|project|work|example|case study|sample|previous/i.test(t)) {
+    reply = "You can view our featured projects at devlyxsolutions.com/projects 🎯 We've built high-concurrency mobile apps, scalable SaaS, and enterprise web solutions. What industry is your project for?";
+    return { reply, newState, newAiData };
+  }
+
+  // 8. Pricing / Cost queries
+  if (/price|cost|budget|kitna|how much|charges|rates|rate/i.test(t)) {
+    if (!newAiData.businessType) {
+      reply = "Our standard pricing: 🌐 Custom Websites start at $800, 📱 Mobile Apps at $2,500, and 🤖 SaaS / AI solutions at $3,000+.\n\nTo give you a precise quote, what type of business do you run and what features do you need?";
+    } else {
+      newState = 'AWAITING_BUDGET';
+      reply = `For a ${newAiData.businessType} project, websites typically start at $800 and apps at $2,500. 💰 What is your target budget or timeline for this build?`;
+    }
+    return { reply, newState, newAiData };
+  }
+
+  // 9. Timeline queries
+  if (/timeline|how long|deadline|duration|kitny din|kab tak/i.test(t)) {
+    reply = "Timelines typically range from 1-2 weeks for landing pages, 6-10 weeks for full Mobile MVPs, and 3-6 months for enterprise SaaS. ⏱️ What is your target launch timeline?";
+    return { reply, newState, newAiData };
+  }
+
+  // 10. Industry / Business Types matching
+  const isBusinessMention = /food|restaurant|cafe|bakery|e-?commerce|shop|store|clothing|fashion|retail|real\s*estate|property|health|medical|clinic|doctor|hospital|education|school|academy|course|tech|fintech|crypto|saas|logistics|travel|hotel|cleaning|fitness|gym|salon|agency|services|lawyer|firm|startup/i.test(t);
+  
+  if (isBusinessMention || newState === 'AWAITING_BUSINESS_TYPE') {
+    newAiData.businessType = userText;
+    newState = 'AWAITING_GOALS';
+    
+    let industryName = "business";
+    if (/food|restaurant|cafe|bakery/i.test(t)) industryName = "food & beverage";
+    else if (/e-?commerce|clothing|fashion|store|shop|retail/i.test(t)) industryName = "e-commerce";
+    else if (/real\s*estate|property/i.test(t)) industryName = "real estate";
+    else if (/health|medical|clinic|doctor/i.test(t)) industryName = "healthcare";
+    else if (/education|school|academy/i.test(t)) industryName = "education";
+    else if (/fitness|gym/i.test(t)) industryName = "fitness";
+    else industryName = userText.slice(0, 30);
+
+    reply = `A ${industryName} business has tremendous growth potential online! 🚀 What specific solution are you looking to build (e.g. a Mobile App with ordering/booking, a Modern Website, or a full management system)?`;
+    return { reply, newState, newAiData };
+  }
+
+  // 11. Goals / Project Type matching
+  const isGoalMention = /web|website|site|landing|app|mobile|ios|android|flutter|platform|portal|dashboard|software|system|crm|erp|saas|automation|ai|ordering|booking|management/i.test(t);
+  
+  if (isGoalMention || newState === 'AWAITING_GOALS') {
+    newAiData.goals = userText;
+    newState = 'AWAITING_BUDGET';
+
+    let productType = "platform";
+    if (/app|mobile|ios|android/i.test(t)) productType = "Mobile App (iOS & Android)";
+    else if (/web|website|landing/i.test(t)) productType = "Web Platform";
+    else if (/saas|portal|dashboard|crm|erp/i.test(t)) productType = "Custom SaaS / Web Platform";
+    else productType = userText.slice(0, 30);
+
+    reply = `Excellent choice! A high-performance ${productType} will provide an exceptional user experience. 💡 What rough budget range or timeline do you have in mind for this project?`;
+    return { reply, newState, newAiData };
+  }
+
+  // 12. Budget / Timeline answering
+  const isBudgetMention = /\$|\d{2,6}|k|budget|flexible|affordable|standard|cheap|expensive|asap|month|week|estimate|reasonable/i.test(t);
+  
+  if (isBudgetMention || newState === 'AWAITING_BUDGET') {
+    newAiData.budget = userText;
+    newState = 'AWAITING_CONTACT';
+    reply = "Understood! That gives us clear parameters to tailor the architecture and scope for your project. 🎯 Let's connect you with our technical lead — please fill in your details below: [SHOW_FORM]";
+    return { reply, newState, newAiData };
+  }
+
+  // 13. State Fallback if nothing matched
+  if (newState === 'AWAITING_CONTACT') {
+    reply = "Please click below to submit your contact details and our team will get in touch with you shortly! 📬 [SHOW_FORM]";
+  } else {
+    newState = 'AWAITING_CONTACT';
+    reply = "I'd love to help you bring this project to life! 🚀 Let's get your details so our team can prepare a custom project roadmap for you. [SHOW_FORM]";
+  }
+
+  return { reply, newState, newAiData };
+}
 
 // ─────────────────────────────────────────────────────────────
-// MAIN SERVICE
+// MAIN CHAT SERVICE
 // ─────────────────────────────────────────────────────────────
 export const chatService = {
   async startSession() {
     let sessionId = localStorage.getItem('devlyx_chat_session');
-    if (!sessionId) {
+    
+    if (sessionId) {
+      try {
+        const chatSnap = await getDoc(doc(db, "chats", sessionId));
+        if (!chatSnap.exists()) {
+          sessionId = null;
+        }
+      } catch (error) {
+        // Fallback to proceed if offline
+      }
+    }
 
-      // Fetch visitor geo + device info
+    if (!sessionId) {
       let geoData = { country: 'Unknown', city: 'Unknown', ip: '' };
       try {
-        const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(4000) });
+        const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
         if (res.ok) {
           const d = await res.json();
           geoData = { country: d.country_name || 'Unknown', city: d.city || 'Unknown', ip: d.ip || '' };
         }
-      } catch (_) {
-        try {
-          const res2 = await fetch('https://ipinfo.io/json', { signal: AbortSignal.timeout(3000) });
-          if (res2.ok) {
-            const d = await res2.json();
-            geoData = { country: d.country || 'Unknown', city: d.city || 'Unknown', ip: d.ip || '' };
-          }
-        } catch (__) {}
-      }
+      } catch (_) {}
 
       const device = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop';
       const browser = navigator.userAgent.includes('Chrome') ? 'Chrome' 
@@ -153,7 +254,6 @@ export const chatService = {
         aiState: 'AWAITING_BUSINESS_TYPE',
         aiData: {},
         chatHistory: [],
-        // Visitor intelligence
         country: geoData.country,
         city: geoData.city,
         ip: geoData.ip,
@@ -171,226 +271,227 @@ export const chatService = {
       setTimeout(() => {
         const greeting = "Hello! 👋 I'm **Dex**, the Devlyx AI assistant.\n\nI'm here to understand your project and connect you with the right expert. So — what are you looking to build? 🚀";
         this._agentSay(sessionId, greeting);
-        updateDoc(ref, { chatHistory: [{ role: 'model', text: greeting }] });
-      }, 800);
+        setDoc(doc(db, "chats", sessionId), { chatHistory: [{ role: 'model', text: greeting }] }, { merge: true });
+      }, 600);
     }
     return sessionId;
   },
 
   async sendMessage(sessionId, text, sender = 'visitor') {
-    // Save message to Firestore
     await addDoc(collection(db, "chats", sessionId, "messages"), {
       text, sender, createdAt: serverTimestamp()
     });
-    await updateDoc(doc(db, "chats", sessionId), {
+    await setDoc(doc(db, "chats", sessionId), {
       lastMessage: text,
       unreadByAdmin: sender === 'visitor',
       updatedAt: serverTimestamp()
-    });
+    }, { merge: true });
 
     if (sender === 'visitor') {
-      // Use getDoc for reliable single-document fetch
       const chatSnap = await getDoc(doc(db, "chats", sessionId));
       const chatData = chatSnap.exists() ? chatSnap.data() : {};
-      setTimeout(() => this._think(sessionId, text, chatData), 1200);
+      setTimeout(() => this._think(sessionId, text, chatData), 1000);
     }
   },
 
   async _think(sessionId, userText, chatData) {
-    const state = chatData.aiState || 'AWAITING_GOALS';
-    const aiData = chatData.aiData || {};
+    let state = chatData.aiState || 'AWAITING_BUSINESS_TYPE';
+    let aiData = chatData.aiData || {};
     const history = chatData.chatHistory || [];
 
-    // Get custom system prompt if admin has set one
+    // Get training configuration if available
     let systemPrompt = DEFAULT_SYSTEM_PROMPT;
+    let customGroqKey = import.meta.env.VITE_GROQ_API_KEY || '';
+    let customGeminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+
     try {
       const trainingSnap = await getDocs(collection(db, "agentTraining"));
       if (!trainingSnap.empty) {
         const configDoc = trainingSnap.docs.find(d => d.id === 'config') || trainingSnap.docs[0];
         const training = configDoc.data();
         if (training.systemPrompt) systemPrompt = training.systemPrompt;
+        if (training.groqApiKey) customGroqKey = training.groqApiKey;
+        if (training.geminiApiKey) customGeminiKey = training.geminiApiKey;
       }
     } catch(e) {}
 
-    // Enforce form popup instructions on top of ANY prompt (even custom ones in Firestore)
-    if (!systemPrompt.includes('[SHOW_FORM]')) {
-      systemPrompt += `
-\n\n## CRITICAL INSTRUCTIONS:
-- When you are ready to collect the user's name, email, or phone, you MUST append exactly [SHOW_FORM] at the very end of your reply. This is mandatory to open the secure contact modal. Do NOT ask them to type it in plain text, tell them to use the form.`;
-    }
-
-    // Inject current context so AI knows where it is in the flow
-    const contextBlock = `
-=== CURRENT CONVERSATION STATE ===
-- State: ${state}
-- Collected Business Type: ${aiData.businessType || 'Not yet collected'}
-- Collected Goals: ${aiData.goals || 'Not yet collected'}
-- Collected Budget: ${aiData.budget || 'Not yet collected'}
-
-State Instructions:
-- AWAITING_BUSINESS_TYPE: Ask what type of business or industry the user is in. Once they explain it, append [GOT_BUSINESS] at the end of your reply.
-- AWAITING_GOALS: You know their business (${aiData.businessType || 'unknown'}). Now dig deeper — ask what specific features or goals they need. Once clear, append [GOT_GOALS].
-- AWAITING_BUDGET: Business and goals are clear. Now ask for their budget range. Once stated, append [GOT_BUDGET].
-- AWAITING_CONTACT: All info collected. Show the contact form by appending [SHOW_FORM].`;
-
     let agentReply = "";
+    let newState = state;
+    let newAiData = { ...aiData };
 
-    // Build conversation messages for AI
-    const chatMessages = [
-      { role: 'system', content: systemPrompt + "\n\n" + contextBlock },
-      ...history.slice(-14).map(h => ({
-        role: h.role === 'user' ? 'user' : 'assistant',
-        content: h.text
-      })),
-      { role: 'user', content: userText }
-    ];
+    const groqAvailable = !!(customGroqKey && customGroqKey.startsWith('gsk_'));
+    const geminiAvailable = !!(customGeminiKey && customGeminiKey !== 'your_gemini_api_key_here');
 
-    // ── PROVIDER 1: Groq (Llama 3.3 70B — fast & free) ──
-    if (GROQ_AVAILABLE && !agentReply) {
+    // ── AI PROVIDER 1: Groq ──
+    if (groqAvailable && !agentReply) {
       try {
-        const res = await fetch(GROQ_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GROQ_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: chatMessages,
-            temperature: 0.75,
-            max_tokens: 400
-          })
-        });
-        if (!res.ok) throw new Error(`Groq HTTP ${res.status}`);
-        const data = await res.json();
-        agentReply = data.choices?.[0]?.message?.content?.trim() || '';
-        if (agentReply) console.log('[Dex] Replied via Groq ✓');
+        const contextBlock = `
+=== CONVERSATION STATE ===
+- State: ${state}
+- Collected Business: ${aiData.businessType || 'None'}
+- Collected Goals: ${aiData.goals || 'None'}
+- Collected Budget: ${aiData.budget || 'None'}
+Instructions:
+- AWAITING_BUSINESS_TYPE: Ask about their business. Append [GOT_BUSINESS] when answered.
+- AWAITING_GOALS: Ask about their project goals/features. Append [GOT_GOALS] when answered.
+- AWAITING_BUDGET: Ask about their budget or timeline. Append [GOT_BUDGET] when answered.
+- AWAITING_CONTACT / Complete: Append [SHOW_FORM] at end of message.`;
+
+        const chatMessages = [
+          { role: 'system', content: systemPrompt + "\n\n" + contextBlock },
+          ...history.slice(-14).map(h => ({
+            role: h.role === 'user' ? 'user' : 'assistant',
+            content: h.text
+          })),
+          { role: 'user', content: userText }
+        ];
+
+        const groqModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'groq/compound', 'qwen/qwen3.8-27b'];
+        for (const model of groqModels) {
+          try {
+            const res = await fetch(GROQ_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${customGroqKey}`
+              },
+              body: JSON.stringify({
+                model,
+                messages: chatMessages,
+                temperature: 0.7,
+                max_tokens: 350
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              agentReply = data.choices?.[0]?.message?.content?.trim() || '';
+              if (agentReply) {
+                console.log(`[Dex] Replied via Groq (${model}) ✓`);
+                break;
+              }
+            }
+          } catch (_) {}
+        }
       } catch (err) {
-        console.warn('[Dex] Groq failed, trying Gemini...', err?.message);
+        console.warn('[Dex] Groq error:', err?.message);
       }
     }
 
-    // ── PROVIDER 2: Gemini (fallback) ──
-    if (GEMINI_AVAILABLE && !agentReply) {
+    // ── AI PROVIDER 2: Gemini ──
+    if (geminiAvailable && !agentReply) {
       try {
-        let fullPrompt = chatMessages.map(m => `${m.role === 'user' ? 'Visitor' : m.role === 'system' ? 'System' : 'Dex'}: ${m.content}`).join('\n');
-        fullPrompt += '\nDex:';
-        const res = await fetch(GEMINI_URL, {
+        const chatMessages = [
+          ...history.slice(-10).map(h => `${h.role === 'user' ? 'Visitor' : 'Dex'}: ${h.text}`),
+          `Visitor: ${userText}`,
+          `Dex:`
+        ].join('\n');
+
+        const res = await fetch(GEMINI_URL(customGeminiKey), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: fullPrompt }] }],
-            generationConfig: { temperature: 0.75, maxOutputTokens: 400 }
+            contents: [{ parts: [{ text: `${systemPrompt}\n\n${chatMessages}` }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 350 }
           })
         });
-        if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
-        const data = await res.json();
-        agentReply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        if (agentReply) console.log('[Dex] Replied via Gemini ✓');
+        if (res.ok) {
+          const data = await res.json();
+          agentReply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        }
       } catch (err) {
-        console.warn('[Dex] Gemini also failed:', err?.message);
+        console.warn('[Dex] Gemini error:', err?.message);
       }
     }
 
-    // ── PROVIDER 3: Smart keyword fallback ──
-    if (!agentReply) {
-      agentReply = fallbackReply(userText, state);
-      console.log('[Dex] Using keyword fallback');
+    // ── AI Extraction & State Transition from Tags ──
+    if (agentReply) {
+      if (agentReply.includes('[GOT_BUSINESS]')) {
+        agentReply = agentReply.replace('[GOT_BUSINESS]', '').trim();
+        newState = 'AWAITING_GOALS';
+        newAiData.businessType = userText;
+      }
+      if (agentReply.includes('[GOT_GOALS]')) {
+        agentReply = agentReply.replace('[GOT_GOALS]', '').trim();
+        newState = 'AWAITING_BUDGET';
+        newAiData.goals = userText;
+      }
+      if (agentReply.includes('[GOT_BUDGET]')) {
+        agentReply = agentReply.replace('[GOT_BUDGET]', '').trim();
+        newState = 'AWAITING_CONTACT';
+        newAiData.budget = userText;
+      }
+      if (agentReply.includes('[SHOW_FORM]')) {
+        newState = 'AWAITING_CONTACT';
+      }
+    } else {
+      // ── PROVIDER 3: Smart Conversational Heuristics Engine ──
+      const fallbackResult = getSmartFallbackResponse(userText, state, aiData, history);
+      agentReply = fallbackResult.reply;
+      newState = fallbackResult.newState;
+      newAiData = fallbackResult.newAiData;
     }
 
-    // Update Firestore chat history
+    // ── UNIVERSAL SAFETY INTERCEPTORS ──
+    const userMentionedForm = /form|pop\s*up|dabba|link|details|contact|whatsapp|number|email|submit|quote|proposal|schedule/i.test(userText.toLowerCase());
+    
+    if (userMentionedForm && newState !== 'COMPLETED') {
+      newState = 'AWAITING_CONTACT';
+      if (!agentReply.includes('[SHOW_FORM]')) {
+        agentReply = "Sure! Here is our contact form so you can share your project requirements directly with our engineering team. [SHOW_FORM]";
+      }
+    }
+
+    if (agentReply.includes('[LEAD_COLLECTED]')) {
+      newState = 'COMPLETED';
+      newAiData.contact = userText;
+
+      const emailMatch = userText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+      const phoneMatch = userText.match(/(\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9})/g);
+
+      await leadService.submitLead({
+        name: 'Chat Lead (Dex)',
+        email: emailMatch ? emailMatch[0] : 'chat-lead@devlyx.com',
+        phone: phoneMatch ? phoneMatch[0] : '',
+        description: `🤖 Dex AI Lead\nBusiness: ${newAiData.businessType || 'N/A'}\nGoals: ${newAiData.goals || 'N/A'}\nBudget: ${newAiData.budget || 'N/A'}\nLast Message: ${userText}`,
+        source: 'Dex AI Agent'
+      });
+    }
+
+    // ── REPETITION & LOOP BLOCKER ──
+    const lastAgentMsg = history.filter(h => h.role === 'model').slice(-1)[0]?.text || '';
+    const cleanCurrent = agentReply.replace(/\[.*?\]/g, '').trim().toLowerCase();
+    const cleanLast = lastAgentMsg.replace(/\[.*?\]/g, '').trim().toLowerCase();
+
+    if (cleanLast && cleanCurrent === cleanLast) {
+      if (newState === 'AWAITING_BUSINESS_TYPE') {
+        newState = 'AWAITING_GOALS';
+        agentReply = "Got it! 🚀 What kind of digital platform do you have in mind (e.g. Mobile App, Custom Website, or SaaS product)?";
+      } else if (newState === 'AWAITING_GOALS') {
+        newState = 'AWAITING_BUDGET';
+        agentReply = "Understood! Do you have an estimated budget range or specific target timeline for this project? 💰";
+      } else {
+        newState = 'AWAITING_CONTACT';
+        agentReply = "Let's connect you with our development team to discuss the exact roadmap. Please share your details below: [SHOW_FORM]";
+      }
+    }
+
+    // Update Firestore chat document
     try {
       const newHistory = [
         ...history,
         { role: 'user', text: userText },
         { role: 'model', text: agentReply }
       ].slice(-20);
-      await updateDoc(doc(db, "chats", sessionId), { chatHistory: newHistory });
-    } catch (e) {
-      console.warn('[Dex] History update failed:', e?.message);
-    }
 
-    // ── Check if agent extracted data intelligently ──
-    let newState = state;
-    let newAiData = { ...aiData };
-
-    if (agentReply.includes('[GOT_BUSINESS]')) {
-      agentReply = agentReply.replace('[GOT_BUSINESS]', '').trim();
-      if (newState === 'AWAITING_BUSINESS_TYPE') {
-        newState = 'AWAITING_GOALS';
-        newAiData.businessType = userText;
-      }
-    }
-    
-    if (agentReply.includes('[GOT_GOALS]')) {
-      agentReply = agentReply.replace('[GOT_GOALS]', '').trim();
-      if (newState === 'AWAITING_GOALS' || newState === 'AWAITING_BUSINESS_TYPE') {
-        newState = 'AWAITING_BUDGET';
-        newAiData.goals = userText;
-      }
-    }
-    
-    if (agentReply.includes('[GOT_BUDGET]')) {
-      agentReply = agentReply.replace('[GOT_BUDGET]', '').trim();
-      if (newState === 'AWAITING_BUDGET' || newState === 'AWAITING_GOALS') {
-        newState = 'AWAITING_CONTACT';
-        newAiData.budget = userText;
-      }
-    }
-
-    if (agentReply.includes('[LEAD_COLLECTED]')) {
-      agentReply = agentReply.replace('[LEAD_COLLECTED]', '').trim();
-      newState = 'COMPLETED';
-      newAiData.contact = userText;
-      
-      // Extract Email and Phone using regex
-      const emailMatch = userText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-      const phoneMatch = userText.match(/(\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9})/g);
-      
-      const extractedEmail = emailMatch ? emailMatch[0] : 'via-chat';
-      const extractedPhone = phoneMatch ? phoneMatch[0] : '';
-      
-      // Attempt to extract a name (simple heuristic: first few words before the contact info)
-      let extractedName = 'Chat Lead (Dex)';
-      const nameMatch = userText.match(/my name is ([a-zA-Z\s]+)/i) || userText.match(/i am ([a-zA-Z\s]+)/i);
-      if (nameMatch && nameMatch[1]) {
-        extractedName = nameMatch[1].trim();
-      }
-
-      // Auto-generate lead with all collected data
-      await leadService.submitLead({
-        name: extractedName,
-        email: extractedEmail,
-        phone: extractedPhone,
-        description: `🤖 Dex AI Lead\nBusiness: ${newAiData.businessType || 'N/A'}\nGoals: ${newAiData.goals || 'N/A'}\nBudget: ${newAiData.budget || 'N/A'}\nLast Message: ${userText}`,
-        source: 'Dex AI Agent'
-      });
-    }
-
-    // ── SAFETY FAILSAVE INTERCEPTORS ──
-    const userMentionedForm = /form|pop\s*up|dabba|link|details|contact|whatsapp|number|email/i.test(userText.toLowerCase());
-    
-    // If user explicitly asks for form/details while in qualification states
-    if (userMentionedForm && newState !== 'COMPLETED') {
-      if (newState === 'AWAITING_GOALS' || newState === 'AWAITING_BUDGET' || newState === 'AWAITING_CONTACT') {
-        newState = 'AWAITING_CONTACT';
-        if (!agentReply.includes('[SHOW_FORM]')) {
-          agentReply = "Sure! Here is the secure contact form to share your details. [SHOW_FORM]";
-        }
-      }
-    }
-
-    // Force [SHOW_FORM] if we just transitioned to AWAITING_CONTACT and it isn't there
-    if (newState === 'AWAITING_CONTACT' && !agentReply.includes('[SHOW_FORM]') && !agentReply.includes('[LEAD_COLLECTED]')) {
-      agentReply += " [SHOW_FORM]";
-    }
-
-    // Update state if changed
-    if (newState !== state) {
-      await updateDoc(doc(db, "chats", sessionId), { 
+      await setDoc(doc(db, "chats", sessionId), { 
+        chatHistory: newHistory,
         aiState: newState,
-        aiData: newAiData
-      });
+        aiData: newAiData,
+        lastMessage: agentReply.slice(0, 100).replace(/\[.*?\]/g, ''),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      console.warn('[Dex] Firestore update warning:', e?.message);
     }
 
     await this._agentSay(sessionId, agentReply);
@@ -400,17 +501,18 @@ State Instructions:
     await addDoc(collection(db, "chats", sessionId, "messages"), {
       text, sender: 'agent', createdAt: serverTimestamp()
     });
-    await updateDoc(doc(db, "chats", sessionId), {
-      lastMessage: text.slice(0, 100), updatedAt: serverTimestamp()
-    });
+    await setDoc(doc(db, "chats", sessionId), {
+      lastMessage: text.slice(0, 100).replace(/\[.*?\]/g, ''),
+      updatedAt: serverTimestamp()
+    }, { merge: true });
   },
 
   // ── Admin Training ──
-  async saveTraining(systemPrompt) {
+  async saveTraining(data) {
     await setDoc(doc(db, "agentTraining", "config"), {
-      systemPrompt,
+      ...data,
       updatedAt: serverTimestamp()
-    });
+    }, { merge: true });
   },
 
   async getTraining() {
@@ -430,21 +532,16 @@ State Instructions:
   },
 
   async markAsRead(sessionId) {
-    await updateDoc(doc(db, "chats", sessionId), { unreadByAdmin: false });
+    await setDoc(doc(db, "chats", sessionId), { unreadByAdmin: false }, { merge: true });
   },
 
   async deleteChat(sessionId) {
-    // Get all messages to delete them
     const messagesSnap = await getDocs(collection(db, "chats", sessionId, "messages"));
     const batch = writeBatch(db);
-    
     messagesSnap.forEach((docSnap) => {
       batch.delete(docSnap.ref);
     });
-    
-    // Delete the main chat document
     batch.delete(doc(db, "chats", sessionId));
-    
     await batch.commit();
   },
 
@@ -452,3 +549,4 @@ State Instructions:
     return DEFAULT_SYSTEM_PROMPT;
   }
 };
+

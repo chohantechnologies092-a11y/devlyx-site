@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Loader2, Image as ImageIcon, Plus, Trash2, User, Users, FileText } from 'lucide-react';
 import { aboutService } from '../services/aboutService';
+import imageCompression from 'browser-image-compression';
 
-const CLOUDINARY_CLOUD_NAME = "dvjpw2pqh";
-const CLOUDINARY_UPLOAD_PRESET = "ml_default";
+const IMGBB_API_KEY = "3bde4002f57762e1e1ca9dc45a90b80b";
 
 const AboutSettingsPage = () => {
   const [loading, setLoading] = useState(true);
@@ -44,19 +44,20 @@ const AboutSettingsPage = () => {
 
     setSaving(true);
     try {
+      const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: false };
+      const compressedFile = await imageCompression(file, options);
+      
       const uploadData = new FormData();
-      uploadData.append('file', file);
-      uploadData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      uploadData.append('image', compressedFile);
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
         method: 'POST',
         body: uploadData
       });
 
       if (!response.ok) throw new Error('Upload failed');
-      
       const data = await response.json();
-      const imageUrl = data.secure_url;
+      const imageUrl = data.data.url;
 
       if (teamIndex !== null) {
         const newTeam = [...formData.teamMembers];

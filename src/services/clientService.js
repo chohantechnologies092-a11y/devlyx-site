@@ -13,9 +13,8 @@ import {
 } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'clients';
-
-const CLOUDINARY_CLOUD_NAME = "dvjpw2pqh";
-const CLOUDINARY_UPLOAD_PRESET = "ml_default";
+const IMGBB_API_KEY = "3bde4002f57762e1e1ca9dc45a90b80b";
+import imageCompression from 'browser-image-compression';
 
 export const clientService = {
     // Get all clients
@@ -58,23 +57,22 @@ export const clientService = {
         }
     },
 
-    // Upload to Cloudinary helper
+    // Upload to ImgBB helper
     uploadLogo: async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1024, useWebWorker: false };
+        const compressedFile = await imageCompression(file, options);
         
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        const formData = new FormData();
+        formData.append('image', compressedFile);
+        
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
             method: 'POST',
             body: formData,
         });
 
-        if (!response.ok) {
-            throw new Error('Cloudinary upload failed');
-        }
-
+        if (!response.ok) throw new Error('ImgBB upload failed');
         const data = await response.json();
-        return data.secure_url;
+        return data.data.url;
     },
 
     // Add a new client
@@ -134,8 +132,8 @@ export const clientService = {
     // Delete a client
     deleteClient: async (id, logoUrl = null) => {
         try {
-            // Cloudinary deletion from client side is not supported by default without signature.
-            // So we just ignore deleting the file from Cloudinary to keep it simple, or handle via backend.
+            // Deletion from Firebase Storage could be added here if needed
+            // For now we just ignore deleting the file to keep it simple, or handle via backend.
             await deleteDoc(doc(db, COLLECTION_NAME, id));
             return true;
         } catch (error) {
