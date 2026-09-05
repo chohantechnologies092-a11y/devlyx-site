@@ -6,10 +6,12 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { 
   ArrowLeft, Save, Loader2, Image as ImageIcon, 
   Type, Tag, Palette, Link as LinkIcon, Plus, Trash2, Hash,
-  Briefcase, MapPin, Activity, FileText, Target, Zap, Globe
+  Briefcase, MapPin, Activity, FileText, Target, Zap, Globe,
+  Video, Play, X
 } from 'lucide-react';
 import RichTextEditor from '../components/RichTextEditor';
 import imageCompression from 'browser-image-compression';
+import { getYouTubeVideoId, getYouTubeEmbedUrl } from '../utils/youtube';
 
 const IMGBB_API_KEY = "3bde4002f57762e1e1ca9dc45a90b80b";
 
@@ -35,6 +37,7 @@ const ProjectEditorPage = () => {
     growthBadge: '',
     beforeStats: '',
     afterStats: '',
+    videoUrl: '',
     challenge: '',
     solution: '',
     gallery: [],
@@ -78,6 +81,7 @@ const ProjectEditorPage = () => {
           growthBadge: proj.growthBadge || '',
           beforeStats: proj.beforeStats || '',
           afterStats: proj.afterStats || '',
+          videoUrl: proj.videoUrl || '',
           challenge: proj.challenge || '',
           solution: proj.solution || '',
           gallery: proj.gallery?.length ? proj.gallery : [],
@@ -175,6 +179,7 @@ const ProjectEditorPage = () => {
 
     const cleanedData = {
       ...formData,
+      videoUrl: (formData.videoUrl || '').trim(),
       gallery: formData.gallery.filter(g => g.trim() !== ''),
       features: formData.features.filter(f => f.trim() !== ''),
       techStack: formData.techStack.filter(t => t.trim() !== ''),
@@ -274,6 +279,78 @@ const ProjectEditorPage = () => {
                 />
               </div>
             </div>
+          </div>
+
+          {/* YouTube Video / Demo Section */}
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                  <Video size={16} />
+                </div>
+                Product Video / YouTube Demo
+              </h2>
+              {formData.videoUrl && getYouTubeVideoId(formData.videoUrl) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-[10px] font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Valid YouTube Video
+                </span>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 fill-red-600 shrink-0" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                YouTube Video Link
+              </label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  value={formData.videoUrl || ''} 
+                  onChange={e => setFormData(p => ({...p, videoUrl: e.target.value}))} 
+                  className="w-full p-3.5 pr-10 bg-gray-50 rounded-xl border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#6a35ff] text-sm font-medium text-gray-900 placeholder:text-gray-400 transition-all" 
+                  placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/..." 
+                />
+                {formData.videoUrl && (
+                  <button 
+                    type="button" 
+                    onClick={() => setFormData(p => ({...p, videoUrl: ''}))} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                    title="Clear link"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-400 font-medium leading-relaxed">
+                Paste any YouTube URL (standard watch link, shortened <code className="text-xs bg-gray-100 px-1 py-0.5 rounded text-gray-600">youtu.be</code> link, or Shorts). This will display in the product case study and enable interactive demo playback.
+              </p>
+            </div>
+
+            {/* Live Preview Box */}
+            {formData.videoUrl && (
+              <div className="pt-4 border-t border-gray-100 space-y-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5">
+                  <Play size={12} className="text-[#6a35ff]" /> Live Video Preview
+                </div>
+                {getYouTubeVideoId(formData.videoUrl) ? (
+                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-lg border border-gray-200">
+                    <iframe 
+                      src={getYouTubeEmbedUrl(formData.videoUrl)} 
+                      title="YouTube Video Preview" 
+                      className="w-full h-full border-0" 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                      allowFullScreen 
+                    />
+                  </div>
+                ) : (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-800 flex items-center gap-2">
+                    <span className="text-sm">⚠️</span>
+                    <span>Invalid YouTube link. Please ensure the link is a valid YouTube video URL.</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Aeronox Special Sections */}

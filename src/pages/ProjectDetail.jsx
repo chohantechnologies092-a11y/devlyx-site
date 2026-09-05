@@ -7,9 +7,10 @@ import { projectService } from '../services/projectService';
 import { 
   ArrowLeft, Loader2, ExternalLink, Target, Zap, CheckCircle2,
   ChevronRight, Cpu, MapPin, TrendingUp, FileText, Sparkles,
-  ArrowRight, Layout, BarChart2, Quote, Globe, X
+  ArrowRight, Layout, BarChart2, Quote, Globe, X, Play, Video
 } from 'lucide-react';
 import { motion, useScroll, useSpring, useTransform, AnimatePresence } from 'framer-motion';
+import { getYouTubeEmbedUrl, getYouTubeVideoId } from '../utils/youtube';
 
 // Removed custom parseContent since we are using Rich Text (HTML) now
 
@@ -160,6 +161,52 @@ const ProjectDetail = () => {
               </div>
            </motion.div>
         </section>
+
+        {/* Video Showcase Section */}
+        {project.videoUrl && getYouTubeEmbedUrl(project.videoUrl) && (
+          <section className="w-full max-w-6xl mx-auto px-4 md:px-8 my-20 md:my-32">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-10%" }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative rounded-[2.5rem] md:rounded-[3.5rem] bg-[#0a0a0c] p-6 md:p-12 border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.4)] overflow-hidden"
+            >
+              {/* Dynamic Ambient Background Glow */}
+              <div 
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[140px] opacity-25 pointer-events-none"
+                style={{ backgroundColor: color }}
+              />
+
+              {/* Header */}
+              <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 md:mb-10">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/15 bg-white/5 backdrop-blur-md mb-4">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span className="text-[10px] font-bold text-white/80 uppercase tracking-[0.25em]">Video Walkthrough</span>
+                  </div>
+                  <h3 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+                    See it in action.
+                  </h3>
+                </div>
+                <p className="text-sm md:text-base text-white/50 font-light max-w-md">
+                  Explore a comprehensive demonstration highlighting product features, workflows, and core architecture.
+                </p>
+              </div>
+
+              {/* 16:9 HD Embedded Player */}
+              <div className="relative z-10 aspect-video w-full rounded-2xl md:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10">
+                <iframe
+                  src={getYouTubeEmbedUrl(project.videoUrl)}
+                  title={`${project.title} Video Demo`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            </motion.div>
+          </section>
+        )}
 
         {/* Narrative - Elegant Storytelling */}
         <section className="w-full px-6 py-10 md:py-20 mt-20">

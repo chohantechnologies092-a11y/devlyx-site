@@ -4,13 +4,16 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { projectService } from '../services/projectService';
 import { Helmet } from 'react-helmet-async';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, X, Video } from 'lucide-react';
+import { getYouTubeEmbedUrl } from '../utils/youtube';
 
 const Products = () => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
+    const [activeVideo, setActiveVideo] = useState(null);
 
     const categories = ['All', ...new Set(projects.map(p => p.category).filter(Boolean))];
     const filtered = projects.filter(p => {
@@ -145,28 +148,51 @@ const Products = () => {
                                     className="group relative rounded-[2.5rem] bg-white border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col h-full"
                                 >
                                     {/* Top Image Section */}
-                                    <Link to={`/projects/${proj.slug}`} className="relative w-full h-auto overflow-hidden bg-gray-100 shrink-0 block">
-                                        {proj.image ? (
-                                            <img src={proj.image} className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-[1.5s] ease-out" alt={proj.title} />
-                                        ) : (
-                                            <div
-                                                className="w-full h-[240px]"
-                                                style={{ background: `linear-gradient(135deg, ${proj.color || '#6a35ff'}33 0%, #f8f9fc 100%)` }}
-                                            />
-                                        )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                                        <div className="absolute top-6 left-6 inline-flex border border-white/20 bg-black/30 backdrop-blur-md px-3 py-1 rounded-full">
+                                    <div className="relative w-full h-auto overflow-hidden bg-gray-100 shrink-0 block">
+                                        <Link to={`/projects/${proj.slug}`} className="block">
+                                            {proj.image ? (
+                                                <img src={proj.image} className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-[1.5s] ease-out" alt={proj.title} />
+                                            ) : (
+                                                <div
+                                                    className="w-full h-[240px]"
+                                                    style={{ background: `linear-gradient(135deg, ${proj.color || '#6a35ff'}33 0%, #f8f9fc 100%)` }}
+                                                />
+                                            )}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                        </Link>
+
+                                        {/* Category Badge */}
+                                        <div className="absolute top-6 left-6 inline-flex border border-white/20 bg-black/30 backdrop-blur-md px-3 py-1 rounded-full pointer-events-none">
                                             <span className="text-[9px] font-bold text-white uppercase tracking-widest">{proj.category}</span>
                                         </div>
+
+                                        {/* Growth Badge */}
                                         {proj.growthBadge && (
-                                            <div className="absolute top-6 right-6 inline-flex border border-white/20 bg-[#00c2cb] px-3 py-1 rounded-full shadow-lg shadow-[#00c2cb]/20 transform group-hover:scale-105 transition-transform">
+                                            <div className="absolute top-6 right-6 inline-flex border border-white/20 bg-[#00c2cb] px-3 py-1 rounded-full shadow-lg shadow-[#00c2cb]/20 transform group-hover:scale-105 transition-transform pointer-events-none">
                                                 <span className="text-[9px] font-black text-white uppercase tracking-widest flex items-center gap-1">
                                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                                                     {proj.growthBadge}
                                                 </span>
                                             </div>
                                         )}
-                                    </Link>
+
+                                        {/* Watch Demo Video Button on Card Overlay */}
+                                        {proj.videoUrl && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setActiveVideo({ url: proj.videoUrl, title: proj.title });
+                                                }}
+                                                className="absolute bottom-5 right-5 z-10 flex items-center gap-2 px-3.5 py-2 bg-white/95 hover:bg-white text-gray-900 rounded-full font-black uppercase text-[9px] tracking-widest shadow-xl backdrop-blur-md transform hover:scale-105 active:scale-95 transition-all"
+                                            >
+                                                <span className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center">
+                                                    <Play size={8} className="fill-white translate-x-[0.5px]" />
+                                                </span>
+                                                <span>Watch Demo</span>
+                                            </button>
+                                        )}
+                                    </div>
 
                                     {/* Bottom Content Section */}
                                     <div className="p-8 flex flex-col flex-grow">
@@ -186,11 +212,20 @@ const Products = () => {
                                             )}
                                         </div>
 
-                                        <div className="mt-auto pt-6 border-t border-gray-50">
+                                        <div className="mt-auto pt-6 border-t border-gray-50 flex items-center justify-between">
                                             <Link to={`/projects/${proj.slug}`} className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-[#6a35ff] hover:text-purple-700 transition-colors group-hover:translate-x-1 duration-300">
                                                 Explore Case Study
                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                                             </Link>
+                                            {proj.videoUrl && (
+                                                <button
+                                                    onClick={() => setActiveVideo({ url: proj.videoUrl, title: proj.title })}
+                                                    className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-red-600 hover:text-red-700 transition-colors"
+                                                >
+                                                    <Play size={10} className="fill-red-600" />
+                                                    Video Demo
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -204,6 +239,59 @@ const Products = () => {
                     )}
                 </div>
             </section>
+
+            {/* Video Modal */}
+            <AnimatePresence>
+                {activeVideo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setActiveVideo(null)}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 md:p-8"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-4xl bg-[#0e0e10] border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#141418]">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-red-600/20 text-red-500 flex items-center justify-center">
+                                        <Play size={14} className="fill-red-500 translate-x-[0.5px]" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-bold text-sm tracking-tight line-clamp-1">{activeVideo.title}</h3>
+                                        <span className="text-[10px] uppercase font-bold tracking-widest text-white/40">Product Video Demo</span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setActiveVideo(null)}
+                                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                                    aria-label="Close modal"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Video Player */}
+                            <div className="relative aspect-video w-full bg-black">
+                                <iframe
+                                    src={getYouTubeEmbedUrl(activeVideo.url, true)}
+                                    title={activeVideo.title || "Product Demo"}
+                                    className="w-full h-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                />
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Bottom CTA */}
             <section className="py-20 px-6 bg-white border-t border-gray-100">

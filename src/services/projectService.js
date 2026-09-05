@@ -95,6 +95,7 @@ export const projectService = {
         order: proj.order || 0,
         techStack: techStack,
         links: proj.links || [],
+        videoUrl: proj.videoUrl || '',
         color: proj.color || '#6a35ff', // Default
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

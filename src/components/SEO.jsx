@@ -41,7 +41,9 @@ const SEO = ({ title, description, image, url, type = 'website', articleData = n
     },
     "sameAs": [
       "https://facebook.com/profile.php?id=61586420621668",
-      "https://www.instagram.com/devlyx_solutions/"
+      "https://www.instagram.com/devlyx_solutions/",
+      "https://www.youtube.com/@Devlyxsolutions",
+      "https://www.tiktok.com/@devlyxsolutions"
     ]
   };
 
