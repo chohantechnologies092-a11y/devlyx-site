@@ -47,12 +47,17 @@ const Projects = () => {
     }, []);
 
     const activeList = projects.length > 0 ? projects : DEFAULT_PROJECTS;
-    const portfolioProjects = activeList.filter(p => p.entryType !== 'product');
+    // Exclude products and ensure only projects with a valid description are displayed
+    const portfolioProjects = activeList.filter(p => 
+        p.entryType !== 'product' && 
+        p.desc && 
+        p.desc.trim().length > 10
+    );
     const flagshipProject = portfolioProjects.find(p => p.slug === 'durood-circle') || portfolioProjects[0] || activeList[0];
     const gridProjects = portfolioProjects.filter(p => p.id !== flagshipProject?.id && p.slug !== flagshipProject?.slug).slice(0, 3);
 
     return (
-        <section id="projects" className="relative w-full bg-[#fcfcfd] py-24 md:py-32 font-sans overflow-hidden">
+        <section id="projects" className="relative w-full bg-[#fcfcfd] pt-20 md:pt-28 pb-10 md:pb-14 font-sans overflow-hidden">
 
             {/* Global Styles for Reveal */}
             <style>{`
@@ -198,7 +203,7 @@ const Projects = () => {
 
                 {/* --- STANDARD GRID DECK --- */}
                 {gridProjects.length > 0 && (
-                    <div className="relative w-full max-w-[1200px] mx-auto pb-20">
+                    <div className="relative w-full max-w-[1200px] mx-auto pb-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {gridProjects.map((proj, index) => (
                                 <div
@@ -212,6 +217,9 @@ const Projects = () => {
                                                 src={proj.image} 
                                                 loading="lazy"
                                                 decoding="async"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                }}
                                                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-[1.5s] ease-out" 
                                                 alt={proj.title} 
                                             />
@@ -265,7 +273,7 @@ const Projects = () => {
                 )}
 
                 {/* --- Bottom Light CTA --- */}
-                <div className="project-reveal flex flex-col items-center text-center py-20 mt-10 relative">
+                <div className={`project-reveal ${hasRevealed ? 'active' : ''} flex flex-col items-center text-center py-8 relative`}>
                     <h4 className="text-3xl md:text-5xl font-black text-[#1d1d1f] tracking-tighter mb-8 max-w-2xl leading-tight">
                         Have an impossible idea? <br />
                         <span className="italic text-gray-400">Let's build it anyway.</span>

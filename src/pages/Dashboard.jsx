@@ -2157,6 +2157,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ totalVisits: 0, totalLeads: 0 });
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { type: 'project' | 'post', id, title, slug }
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -2190,10 +2192,27 @@ const Dashboard = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this post?")) {
-      await blogService.deletePost(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    const target = deleteTarget;
+    try {
+      if (target.type === 'project') {
+        // Optimistically remove from state for instant UI update
+        setProjects(prev => prev.filter(p => p.id !== target.id && p.slug !== target.slug));
+        await projectService.deleteProject(target.id, target.slug);
+      } else if (target.type === 'post') {
+        // Optimistically remove from state
+        setPosts(prev => prev.filter(p => p.id !== target.id));
+        await blogService.deletePost(target.id);
+      }
+      setDeleteTarget(null);
       await fetchData();
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Error deleting: " + err.message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -2211,7 +2230,8 @@ const Dashboard = () => {
   }
 
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/" element={
         <DashboardLayout activeTab="overview" user={user}>
           <Overview posts={posts} projects={projects} stats={stats} visits={visits} />
@@ -2272,22 +2292,34 @@ const Dashboard = () => {
                           </span>
                         </td>
                         <td className="px-10 py-6 text-sm font-bold text-gray-600">{proj.order || 0}</td>
-                        <td className="px-10 py-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-10 py-6 text-right" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
                             <button 
-                              onClick={() => navigate(`/dashboard/projects/editor/${proj.id}`)}
-                              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-[#6a35ff] hover:border-purple-100 transition-all"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                navigate(`/dashboard/projects/editor/${proj.id}`);
+                              }}
+                              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-[#6a35ff] hover:border-purple-100 transition-all cursor-pointer shadow-sm active:scale-95"
+                              title="Edit Project"
                             >
                               <Edit3 size={16} />
                             </button>
                             <button 
-                              onClick={async () => {
-                                if (window.confirm("Delete this project?")) {
-                                  await projectService.deleteProject(proj.id);
-                                  fetchData();
-                                }
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setDeleteTarget({
+                                  type: 'project',
+                                  id: proj.id,
+                                  title: proj.title,
+                                  slug: proj.slug
+                                });
                               }}
-                              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-100 transition-all"
+                              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-100 transition-all cursor-pointer shadow-sm active:scale-95"
+                              title="Delete Project"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -2380,17 +2412,34 @@ const Dashboard = () => {
                             {new Date(post.createdAt?.seconds * 1000).toLocaleDateString()}
                           </div>
                         </td>
-                        <td className="px-10 py-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-10 py-6 text-right" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
                             <button 
-                              onClick={() => navigate(`/dashboard/editor/${post.id}`)}
-                              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-[#6a35ff] hover:border-purple-100 transition-all"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                navigate(`/dashboard/editor/${post.id}`);
+                              }}
+                              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-[#6a35ff] hover:border-purple-100 transition-all cursor-pointer shadow-sm active:scale-95"
+                              title="Edit Article"
                             >
                               <Edit3 size={16} />
                             </button>
                             <button 
-                              onClick={() => handleDelete(post.id)}
-                              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-100 transition-all"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setDeleteTarget({
+                                  type: 'post',
+                                  id: post.id,
+                                  title: post.title,
+                                  slug: post.slug
+                                });
+                              }}
+                              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-100 transition-all cursor-pointer shadow-sm active:scale-95"
+                              title="Delete Article"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -2441,7 +2490,66 @@ const Dashboard = () => {
         </DashboardLayout>
       } />
     </Routes>
-  );
+
+    {/* Delete Confirmation Modal Popup */}
+    <AnimatePresence>
+      {deleteTarget && (
+        <div 
+          className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => !isDeleting && setDeleteTarget(null)}
+        >
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.15 }}
+            className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl border border-gray-100 text-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-16 h-16 rounded-3xl bg-red-50 text-red-500 border border-red-100 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-500/10">
+              <Trash2 size={28} className="animate-pulse" />
+            </div>
+
+            <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+              Delete {deleteTarget.type === 'project' ? 'Project' : 'Article'}?
+            </h3>
+
+            <div className="my-4 px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl">
+              <p className="text-sm font-black text-gray-800 truncate">{deleteTarget.title}</p>
+              {deleteTarget.slug && (
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">/{deleteTarget.slug}</p>
+              )}
+            </div>
+
+            <p className="text-xs font-medium text-gray-500 leading-relaxed mb-8">
+              Are you sure you want to permanently delete this {deleteTarget.type === 'project' ? 'project' : 'article'}? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-4 px-6 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 active:scale-95 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={confirmDelete}
+                className="flex-1 py-4 px-6 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-red-600/30 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {isDeleting ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  </>
+);
 };
 
 // --- Subscribers Page ---

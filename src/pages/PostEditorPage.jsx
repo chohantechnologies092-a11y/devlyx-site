@@ -123,7 +123,7 @@ const PostEditorPage = () => {
   const fetchPost = async () => {
     try {
       const posts = await blogService.getAllPosts();
-      const post = posts.find(p => p.id === id);
+      const post = posts.find(p => p.id === id || p.slug === id);
       if (post) {
         setFormData(post);
         // We removed editor?.commands.setContent here because editor might be null at this exact moment.

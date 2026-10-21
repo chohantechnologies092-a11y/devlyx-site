@@ -70,7 +70,7 @@ const ProjectEditorPage = () => {
   const fetchProject = async () => {
     try {
       const projects = await projectService.getAllProjects();
-      const proj = projects.find(p => p.id === id);
+      const proj = projects.find(p => p.id === id || p.slug === id);
       if (proj) {
         setFormData({
           ...proj,
@@ -195,7 +195,7 @@ const ProjectEditorPage = () => {
       } else {
         await projectService.createProject(cleanedData);
       }
-      navigate('/dashboard');
+      navigate('/dashboard/projects');
     } catch (err) {
       console.error("Save error:", err);
       alert("Error saving project: " + err.message);
@@ -217,7 +217,7 @@ const ProjectEditorPage = () => {
       <header className="h-20 border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 bg-white/80 backdrop-blur-md z-30">
         <div className="flex items-center gap-6">
           <button 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/dashboard/projects')}
             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-all"
           >
             <ArrowLeft size={18} />

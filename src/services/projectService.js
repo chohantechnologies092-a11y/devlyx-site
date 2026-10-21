@@ -85,7 +85,7 @@ export const DEFAULT_PROJECTS = [
     clientLocation: "Manama, Bahrain",
     desc: "Corporate civil contracting portal engineered for heavy construction tenders, milestone tracking, and regional client acquisition across the Gulf.",
     content: "<h2>Corporate Mission</h2><p>Malfak Contracting required an authoritative digital ecosystem that communicated their engineering prowess to government agencies and private developers across Bahrain and Saudi Arabia.</p><h2>Technical Architecture</h2><p>Devlyx built a lightning-fast responsive platform showcasing high-resolution project blueprints, interactive milestone timelines, and a secure Request-For-Quote (RFQ) pipeline.</p><h2>Outcome</h2><p>3x increase in qualified enterprise tender inquiries within 90 days of deployment.</p>",
-    image: "https://images.unsplash.com/photo-1541888946425-d0fbb186156f?auto=format&fit=crop&w=800&q=75",
+    image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80",
     growthBadge: "3x Tender Inquiries",
     color: "#00c2cb",
     order: 3,
@@ -101,6 +101,34 @@ export const DEFAULT_PROJECTS = [
     ],
     links: [
       { type: "web", url: "https://malfakcontracting.com", label: "Corporate Site" }
+    ]
+  },
+  {
+    id: "proj-careplus-pharma",
+    title: "CarePlus Pharma Network",
+    slug: "careplus-pharma-network",
+    category: "Healthcare & Distribution ERP",
+    entryType: "project",
+    client: "CarePlus Healthcare Network",
+    clientLocation: "Islamabad & Rawalpindi",
+    desc: "Centralized pharmaceutical supply chain platform managing 50,000+ medical SKUs, real-time batch expiry warnings, and automated supplier invoicing.",
+    content: "<h2>Healthcare Logistics Re-Engineered</h2><p>CarePlus needed an enterprise inventory and distributor portal capable of synchronizing stock across regional retail outlets with zero checkout latency and automated expiry tracking.</p><h2>The Solution</h2><p>Devlyx built a high-speed React and Node.js platform featuring barcode tracking, automated purchase reorders, and supplier ledgers.</p><h2>Results</h2><p>99.9% billing accuracy and zero near-expiry inventory write-offs.</p>",
+    image: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=800&q=75",
+    growthBadge: "99.9% Billing Accuracy",
+    color: "#3ecf8e",
+    order: 4,
+    techStack: ["React", "Node.js", "TailwindCSS", "PostgreSQL", "Electron"],
+    features: [
+      "Sub-second barcode search & 80mm thermal receipts",
+      "Automated batch expiry countdown tracking",
+      "Supplier ledger balances & purchase orders"
+    ],
+    stats: [
+      { value: "99.9%", label: "Accuracy" },
+      { value: "50K+", label: "SKUs Managed" }
+    ],
+    links: [
+      { type: "web", url: "/services/pharmacy-pos-software", label: "View Solution" }
     ]
   },
   {
@@ -212,21 +240,44 @@ export const DEFAULT_PROJECTS = [
 export const projectService = {
   // Get all projects
   async getAllProjects() {
+    let localDeleted = [];
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem("devlyx_deleted_projects") : null;
+      if (stored) localDeleted = JSON.parse(stored);
+    } catch (e) {}
+    const localDeletedSet = new Set(localDeleted);
+
     try {
       const q = query(collection(db, PROJECT_COLLECTION), orderBy("order", "asc"));
       const snapshot = await getDocs(q);
       const firestoreProjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      if (firestoreProjects && firestoreProjects.length > 0) {
-        // Map any Firestore overrides onto default projects if they exist
-        const firestoreBySlug = new Map(firestoreProjects.map(p => [p.slug, p]));
-        const enrichedDefaults = DEFAULT_PROJECTS.map(def => {
-          const remote = firestoreBySlug.get(def.slug);
+      // Collect all deleted identifiers from Firestore docs (isDeleted or deleted: true)
+      const firestoreDeletedSet = new Set(
+        firestoreProjects
+          .filter(p => p.isDeleted === true || p.deleted === true)
+          .flatMap(p => [p.id, p.slug].filter(Boolean))
+      );
+      
+      const allDeletedSet = new Set([...localDeletedSet, ...firestoreDeletedSet]);
+
+      // Active firestore projects
+      const activeFirestore = firestoreProjects.filter(p => 
+        !p.isDeleted && !p.deleted && !allDeletedSet.has(p.id) && !allDeletedSet.has(p.slug)
+      );
+
+      const firestoreBySlug = new Map(activeFirestore.map(p => [p.slug, p]));
+      const firestoreById = new Map(activeFirestore.map(p => [p.id, p]));
+
+      // Enrich defaults, excluding any that have been marked deleted
+      const enrichedDefaults = DEFAULT_PROJECTS
+        .filter(def => !allDeletedSet.has(def.id) && !allDeletedSet.has(def.slug))
+        .map(def => {
+          const remote = firestoreBySlug.get(def.slug) || firestoreById.get(def.id);
           if (!remote) return def;
           return {
             ...def,
             ...remote,
-            // Keep rich content/features from curated default if remote doc is empty/incomplete
             content: remote.content || def.content,
             features: (remote.features && remote.features.length > 0) ? remote.features : def.features,
             stats: (remote.stats && remote.stats.length > 0) ? remote.stats : def.stats,
@@ -238,25 +289,32 @@ export const projectService = {
           };
         });
 
-        const defaultSlugs = new Set(DEFAULT_PROJECTS.map(p => p.slug));
-        const additionalProjects = firestoreProjects.filter(p => !defaultSlugs.has(p.slug));
-        return [...enrichedDefaults, ...additionalProjects];
-      }
-      return DEFAULT_PROJECTS;
+      const defaultSlugs = new Set(DEFAULT_PROJECTS.map(p => p.slug));
+      const defaultIds = new Set(DEFAULT_PROJECTS.map(p => p.id));
+      const additionalProjects = activeFirestore.filter(p => !defaultSlugs.has(p.slug) && !defaultIds.has(p.id));
+      return [...enrichedDefaults, ...additionalProjects];
     } catch (error) {
       console.warn("Could not load projects from Firestore, using default curated projects:", error);
-      return DEFAULT_PROJECTS;
+      return DEFAULT_PROJECTS.filter(def => !localDeletedSet.has(def.id) && !localDeletedSet.has(def.slug));
     }
   },
 
   // Get single project by slug
   async getProjectBySlug(slug) {
+    let localDeleted = [];
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem("devlyx_deleted_projects") : null;
+      if (stored) localDeleted = JSON.parse(stored);
+    } catch (e) {}
+    if (localDeleted.includes(slug)) return null;
+
     const defaultItem = DEFAULT_PROJECTS.find(p => p.slug === slug);
     try {
       const q = query(collection(db, PROJECT_COLLECTION), where("slug", "==", slug));
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
         const remoteData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+        if (remoteData.isDeleted || remoteData.deleted) return null;
         if (!defaultItem) return remoteData;
         return {
           ...defaultItem,
@@ -280,25 +338,58 @@ export const projectService = {
   async createProject(projectData) {
     const docRef = await addDoc(collection(db, PROJECT_COLLECTION), {
       ...projectData,
+      isDeleted: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
     return docRef.id;
   },
 
-  // Update project
+  // Update project (safe for both existing and newly created default documents)
   async updateProject(id, projectData) {
     const docRef = doc(db, PROJECT_COLLECTION, id);
-    await updateDoc(docRef, {
+    await setDoc(docRef, {
       ...projectData,
+      isDeleted: false,
       updatedAt: serverTimestamp(),
-    });
+    }, { merge: true });
+
+    // Remove from localDeleted list if it was previously marked
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem("devlyx_deleted_projects");
+        if (stored) {
+          const list = JSON.parse(stored).filter(x => x !== id && x !== projectData.slug);
+          localStorage.setItem("devlyx_deleted_projects", JSON.stringify(list));
+        }
+      }
+    } catch (e) {}
   },
 
-  // Delete project
-  async deleteProject(id) {
-    const docRef = doc(db, PROJECT_COLLECTION, id);
-    await deleteDoc(docRef);
+  // Delete project (supports both default IDs and Firestore doc IDs)
+  async deleteProject(id, slug) {
+    // Record in localStorage immediately for instantaneous responsive UI
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem("devlyx_deleted_projects");
+        const list = stored ? JSON.parse(stored) : [];
+        if (id && !list.includes(id)) list.push(id);
+        if (slug && !list.includes(slug)) list.push(slug);
+        localStorage.setItem("devlyx_deleted_projects", JSON.stringify(list));
+      }
+    } catch (e) {}
+
+    // Persist soft-delete in Firestore so it stays deleted across all devices
+    try {
+      const docRef = doc(db, PROJECT_COLLECTION, id);
+      await setDoc(docRef, {
+        isDeleted: true,
+        slug: slug || id,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (err) {
+      console.warn("Firestore deleteProject warning:", err);
+    }
   },
 
   // SEED FUNCTION: Migrate aeronox-solutions data to new_site2
