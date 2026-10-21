@@ -16,6 +16,15 @@ const COLLECTION_NAME = 'clients';
 const IMGBB_API_KEY = "3bde4002f57762e1e1ca9dc45a90b80b";
 import imageCompression from 'browser-image-compression';
 
+const DEFAULT_CLIENTS = [
+    { id: 'c1', name: 'AL Sama Suppliers', websiteUrl: '', isActive: true },
+    { id: 'c2', name: 'Malfak Contracting Bahrain', websiteUrl: '', isActive: true },
+    { id: 'c3', name: 'CarePlus Pharma Network', websiteUrl: '', isActive: true },
+    { id: 'c4', name: 'Durood Circle Global', websiteUrl: '', isActive: true },
+    { id: 'c5', name: 'TasteCraft Hospitality', websiteUrl: '', isActive: true },
+    { id: 'c6', name: 'Mobile Khata Solutions', websiteUrl: '', isActive: true }
+];
+
 export const clientService = {
     // Get all clients
     getAllClients: async () => {
@@ -45,15 +54,18 @@ export const clientService = {
                 ...doc.data()
             }));
             
-            // Sort locally to avoid needing a Firestore composite index
-            return clients.sort((a, b) => {
-                const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-                const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-                return dateB - dateA;
-            });
+            if (clients && clients.length > 0) {
+                // Sort locally to avoid needing a Firestore composite index
+                return clients.sort((a, b) => {
+                    const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                    const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                    return dateB - dateA;
+                });
+            }
+            return DEFAULT_CLIENTS;
         } catch (error) {
-            console.error('Error fetching active clients:', error);
-            throw error;
+            console.warn('Error fetching active clients from Firestore, using default clients:', error);
+            return DEFAULT_CLIENTS;
         }
     },
 

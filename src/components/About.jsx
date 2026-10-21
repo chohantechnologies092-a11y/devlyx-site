@@ -92,7 +92,7 @@ const About = () => {
                             className="flex-1 bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center group hover:-translate-y-1 transition-transform duration-300"
                         >
                             <div className="text-5xl lg:text-7xl font-black text-gray-950 mb-2">15<span className="text-[#6a35ff]">+</span></div>
-                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Years Mastery</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Years Combined Expertise</div>
                         </motion.div>
 
                         <motion.div
@@ -102,7 +102,7 @@ const About = () => {
                             transition={{ duration: 0.6, delay: 0.2 }}
                             className="flex-1 bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center group hover:-translate-y-1 transition-transform duration-300"
                         >
-                            <div className="text-5xl lg:text-7xl font-black text-gray-950 mb-2">250<span className="text-[#00c2cb]">+</span></div>
+                            <div className="text-5xl lg:text-7xl font-black text-gray-950 mb-2">150<span className="text-[#00c2cb]">+</span></div>
                             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Global Clients</div>
                         </motion.div>
                     </div>

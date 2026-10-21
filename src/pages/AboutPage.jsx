@@ -219,7 +219,7 @@ const AboutPage = () => {
                 </p>
               </div>
 
-              {data.stats?.map((item, i) => {
+              {data.stats?.map((rawItem, i) => {
                 const Icon = statIcons[i % statIcons.length];
                 const classes = [
                   "md:col-span-2 md:row-span-1 bg-purple-50",
@@ -228,6 +228,21 @@ const AboutPage = () => {
                   "md:col-span-2 md:row-span-1 bg-green-50"
                 ];
                 const colors = ["text-purple-600", "text-cyan-600", "text-gray-900", "text-green-600"];
+
+                let title = rawItem.title || '';
+                let subtitle = rawItem.subtitle || '';
+                let desc = rawItem.desc || '';
+
+                if (title.includes('15+') || title.includes('10+') || subtitle.includes('Industry Mastery') || subtitle.includes('Combined Expertise')) {
+                  title = '15+ Years';
+                  subtitle = 'Combined Expertise';
+                  desc = 'A collective decade and a half of engineering and shipping robust digital ecosystems.';
+                }
+                if (subtitle.includes('250+') || subtitle.includes('50+') || title.includes('250+') || title.includes('50+') || subtitle.toLowerCase().includes('clients')) {
+                  subtitle = '150+ Clients';
+                  title = 'Global Reach';
+                  desc = 'Partnering with enterprises from Pakistan and the Gulf to international markets.';
+                }
                 
                 return (
                   <motion.div
@@ -242,9 +257,9 @@ const AboutPage = () => {
                       <Icon size={24} />
                     </div>
                     <div className="mt-8">
-                      <div className="text-4xl font-black text-gray-900 tracking-tighter mb-1">{item.title}</div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">{item.subtitle}</div>
-                      <p className="text-sm text-gray-600 font-medium leading-relaxed">{item.desc}</p>
+                      <div className="text-4xl font-black text-gray-900 tracking-tighter mb-1">{title}</div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">{subtitle}</div>
+                      <p className="text-sm text-gray-600 font-medium leading-relaxed">{desc}</p>
                     </div>
                   </motion.div>
                 );

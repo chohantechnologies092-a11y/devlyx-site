@@ -27,7 +27,7 @@ const slides = [
         ],
         stats: [
             { value: "100+", label: "Projects" },
-            { value: "50+", label: "Clients" },
+            { value: "150+", label: "Global Clients" },
             { value: "5★", label: "Rating" },
         ],
     },

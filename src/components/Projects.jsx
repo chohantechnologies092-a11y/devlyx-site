@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { projectService } from '../services/projectService';
+import { projectService, DEFAULT_PROJECTS } from '../services/projectService';
 
 const Projects = () => {
     const [projects, setProjects] = React.useState([]);
@@ -10,9 +10,10 @@ const Projects = () => {
         const fetchProjects = async () => {
             try {
                 const data = await projectService.getAllProjects();
-                setProjects(data);
+                setProjects(data && data.length > 0 ? data : DEFAULT_PROJECTS);
             } catch (error) {
                 console.error("Error fetching projects:", error);
+                setProjects(DEFAULT_PROJECTS);
             } finally {
                 setLoading(false);
             }
@@ -21,8 +22,6 @@ const Projects = () => {
     }, []);
 
     useEffect(() => {
-        if (loading || projects.length === 0) return;
-
         const observer = new IntersectionObserver((entries) => {
             let delay = 0;
             entries.forEach(entry => {
@@ -41,24 +40,10 @@ const Projects = () => {
         return () => observer.disconnect();
     }, [loading, projects]);
 
-    if (loading) {
-        return (
-            <section id="projects" className="relative w-full bg-[#fcfcfd] py-32 flex justify-center">
-                <div className="w-12 h-12 border-4 border-[#6a35ff] border-t-transparent rounded-full animate-spin"></div>
-            </section>
-        );
-    }
-
-    if (projects.length === 0) {
-        return (
-            <section id="projects" className="relative w-full bg-[#fcfcfd] py-32 flex flex-col items-center">
-                <h2 className="text-3xl font-black text-gray-400 uppercase tracking-widest">Projects Coming Soon</h2>
-            </section>
-        );
-    }
-
-    const flagshipProject = projects.find(p => p.slug === 'durood-circle') || projects[0];
-    const gridProjects = projects.filter(p => p.id !== flagshipProject?.id).slice(0, 3);
+    const activeList = projects.length > 0 ? projects : DEFAULT_PROJECTS;
+    const portfolioProjects = activeList.filter(p => p.entryType !== 'product');
+    const flagshipProject = portfolioProjects.find(p => p.slug === 'durood-circle') || portfolioProjects[0] || activeList[0];
+    const gridProjects = portfolioProjects.filter(p => p.id !== flagshipProject?.id && p.slug !== flagshipProject?.slug).slice(0, 3);
 
     return (
         <section id="projects" className="relative w-full bg-[#fcfcfd] py-24 md:py-32 font-sans overflow-hidden">

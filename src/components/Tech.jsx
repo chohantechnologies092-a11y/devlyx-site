@@ -271,7 +271,7 @@ const Tech = () => {
                     </div>
 
                     <div className="absolute top-10 right-10 hidden md:flex items-center gap-4 text-[#00c2cb]/30 font-mono text-[7px] tracking-widest uppercase">
-                        <span className="animate-pulse">SYSTEM_ESTABLISHED: 08.04.26</span>
+                        <span className="animate-pulse">SYSTEM_STATUS: OPERATIONAL // PRODUCTION_READY</span>
                         <div className="flex gap-1">
                             <div className="w-4 h-1 bg-white/5"></div>
                             <div className="w-2 h-1 bg-[#00c2cb]/40"></div>

@@ -25,10 +25,17 @@ const Products = lazy(() => import('./pages/Products'));
 const ProjectEditorPage = lazy(() => import('./pages/ProjectEditorPage'));
 const StartProject = lazy(() => import('./pages/StartProject'));
 const SoftwareDevelopment = lazy(() => import('./pages/SoftwareDevelopment'));
+const PharmacyPosSoftware = lazy(() => import('./pages/PharmacyPosSoftware'));
+const RestaurantPosSoftware = lazy(() => import('./pages/RestaurantPosSoftware'));
 const ServicesPage = lazy(() => import('./pages/ServicesPage'));
 const ServiceDetail = lazy(() => import('./pages/ServiceDetail'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+import FloatingWhatsApp from './components/FloatingWhatsApp';
 
 // Premium Loading Component
 const PageLoader = () => (
@@ -126,15 +133,23 @@ function App() {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/services/:type/:region" element={<ServiceDetail />} />
               <Route path="/services/software-development-uae" element={<SoftwareDevelopment />} />
+              <Route path="/services/pharmacy-pos-software" element={<PharmacyPosSoftware />} />
+              <Route path="/products/pharmacy-pos-software" element={<PharmacyPosSoftware />} />
+              <Route path="/services/restaurant-pos-software" element={<RestaurantPosSoftware />} />
+              <Route path="/products/restaurant-pos-software" element={<RestaurantPosSoftware />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard/*" element={<Dashboard />} />
               <Route path="/dashboard/editor/:id" element={<PostEditorPage />} />
               <Route path="/dashboard/projects/editor/:id" element={<ProjectEditorPage />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
             <ChatBubble />
             <DexGreeter />
+            <FloatingWhatsApp />
           </Suspense>
         </Router>
       </ErrorBoundary>

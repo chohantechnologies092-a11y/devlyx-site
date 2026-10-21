@@ -15,10 +15,10 @@ const DEFAULT_ABOUT_DATA = {
   heroBackground: "https://images.pexels.com/photos/3183190/pexels-photo-3183190.jpeg",
   companyStory: "Founded with a vision to bridge the gap between creative design and hardcore engineering, Devlyx Solutions began as a small collective of passionate developers. Today, we stand as a premier digital agency partnering with brands globally. Our approach is simple: understand the core of the business, design with empathy, and engineer with precision. We believe that technology should empower, not complicate, and every line of code we write is dedicated to that philosophy.",
   stats: [
-    { title: "15+ Years", subtitle: "Industry Mastery", desc: "A decade and a half of engineering complex digital ecosystems." },
-    { title: "99% Success", subtitle: "Client Satisfaction", desc: "Delivering results that exceed global standards." },
-    { title: "Global Reach", subtitle: "250+ Clients", desc: "Partnering with innovators from Silicon Valley to Dubai." },
-    { title: "Modern Tech", subtitle: "Next-Gen Stack", desc: "Specializing in React, Node, AI, and Cloud Architecture." }
+    { title: "15+ Years", subtitle: "Combined Expertise", desc: "A collective decade and a half of engineering and shipping robust digital ecosystems." },
+    { title: "99% Success", subtitle: "Client Satisfaction", desc: "Delivering results that exceed global industry standards." },
+    { title: "Global Reach", subtitle: "150+ Clients", desc: "Partnering with enterprises from Pakistan and the Gulf to international markets." },
+    { title: "Modern Tech", subtitle: "Next-Gen Stack", desc: "Specializing in React, Flutter, Node, AI, and Cloud Architecture." }
   ],
   philosophyImage: "https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg",
   philosophies: [
@@ -40,7 +40,27 @@ export const aboutService = {
       const docRef = doc(db, SETTINGS_COLLECTION, ABOUT_DOC);
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
-        return { ...DEFAULT_ABOUT_DATA, ...snapshot.data() };
+        const firestoreData = snapshot.data();
+        let stats = firestoreData.stats || DEFAULT_ABOUT_DATA.stats;
+        stats = stats.map(s => {
+          let title = s.title || '';
+          let subtitle = s.subtitle || '';
+          let desc = s.desc || '';
+
+          if (title.includes('15+') || title.includes('10+') || subtitle.includes('Industry Mastery') || subtitle.includes('Combined Expertise')) {
+            title = '15+ Years';
+            subtitle = 'Combined Expertise';
+            desc = 'A collective decade and a half of engineering and shipping robust digital ecosystems.';
+          }
+          if (subtitle.includes('250+') || subtitle.includes('50+') || title.includes('250+') || title.includes('50+') || subtitle.toLowerCase().includes('clients')) {
+            subtitle = '150+ Clients';
+            title = 'Global Reach';
+            desc = 'Partnering with enterprises from Pakistan and the Gulf to international markets.';
+          }
+          return { ...s, title, subtitle, desc };
+        });
+
+        return { ...DEFAULT_ABOUT_DATA, ...firestoreData, stats };
       }
       return DEFAULT_ABOUT_DATA;
     } catch (error) {

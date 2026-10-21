@@ -32,11 +32,19 @@ async function generateSitemap() {
   const urls = [
     { loc: '/', changefreq: 'weekly', priority: '1.0' },
     { loc: '/services', changefreq: 'weekly', priority: '0.9' },
+    { loc: '/services/pharmacy-pos-software', changefreq: 'weekly', priority: '0.9' },
+    { loc: '/products/pharmacy-pos-software', changefreq: 'weekly', priority: '0.9' },
+    { loc: '/services/restaurant-pos-software', changefreq: 'weekly', priority: '0.9' },
+    { loc: '/products/restaurant-pos-software', changefreq: 'weekly', priority: '0.9' },
+    { loc: '/services/software-development-uae', changefreq: 'weekly', priority: '0.9' },
     { loc: '/products', changefreq: 'weekly', priority: '0.9' },
     { loc: '/projects', changefreq: 'weekly', priority: '0.9' },
+    { loc: '/start-project', changefreq: 'monthly', priority: '0.8' },
     { loc: '/blog', changefreq: 'daily', priority: '0.9' },
     { loc: '/about', changefreq: 'monthly', priority: '0.7' },
     { loc: '/contact', changefreq: 'monthly', priority: '0.8' },
+    { loc: '/privacy-policy', changefreq: 'yearly', priority: '0.4' },
+    { loc: '/terms', changefreq: 'yearly', priority: '0.4' },
   ];
 
   try {

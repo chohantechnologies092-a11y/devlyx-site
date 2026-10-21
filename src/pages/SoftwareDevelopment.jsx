@@ -83,7 +83,7 @@ const SoftwareDevelopment = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Trusted by 50+ Enterprises</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Trusted by 150+ Global Clients</div>
                 </div>
               </div>
             </motion.div>
@@ -210,7 +210,7 @@ const SoftwareDevelopment = () => {
                <a href="#contact" className="px-12 py-5 bg-white text-black rounded-full font-black uppercase tracking-widest text-xs hover:bg-[#6a35ff] hover:text-white transition-all shadow-2xl">
                  Consult with our Architects
                </a>
-               <div className="text-white/40 text-[10px] font-black uppercase tracking-widest">Zero Consultation Fee for Q3</div>
+               <div className="text-white/40 text-[10px] font-black uppercase tracking-widest">Zero Consultation Fee for Q4</div>
             </div>
           </div>
         </div>

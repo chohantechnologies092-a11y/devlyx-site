@@ -67,6 +67,17 @@ const allServices = [
     regions: [{ name: 'UAE', slug: 'uae' }, { name: 'Global', slug: 'global' }],
     accent: '#95bf47',
     tags: ['Custom Themes', 'Shopify Apps', 'API Integrations']
+  },
+  {
+    id: 'pharmacy-pos-software',
+    title: "Pharmacy & Retail POS Systems",
+    subtitle: "Healthcare & Store Billing Systems",
+    desc: "Sub-second barcode checkout, batch expiry countdowns, formula substitute search, and multi-counter offline LAN sync.",
+    image: "/img/services/software.png",
+    customLink: "/services/pharmacy-pos-software",
+    regions: [{ name: 'Dedicated Page', slug: 'pharmacy-pos-software' }, { name: 'Pakistan', slug: 'pakistan' }, { name: 'UAE', slug: 'uae' }, { name: 'Global', slug: 'global' }],
+    accent: '#3ecf8e',
+    tags: ['0ms Barcode', 'Expiry Alerts', 'Offline LAN', 'Thermal Receipts']
   }
 ];
 
@@ -166,7 +177,7 @@ const ServicesPage = () => {
                       {s.regions.map(r => (
                         <Link
                           key={r.slug}
-                          to={`/services/${s.id}/${r.slug}`}
+                          to={s.customLink || `/services/${s.id}/${r.slug}`}
                           className="flex items-center justify-between py-3 px-5 rounded-xl bg-white border border-gray-100 hover:border-current hover:shadow-md transition-all group/r"
                           style={{ color: s.accent }}
                         >
@@ -190,7 +201,7 @@ const ServicesPage = () => {
             Ready to Dominate <span className="text-gradient">Your Market?</span>
           </h2>
           <p className="text-gray-500 text-lg font-medium max-w-2xl mx-auto mb-12">
-            Our team is open for Q3 2026 enterprise engagements. Zero consultation fee.
+            Our team is open for Q4 2026 enterprise engagements. Zero consultation fee.
           </p>
           <Link to="/start-project"
             className="inline-flex items-center gap-3 px-12 py-5 bg-gray-900 text-white rounded-full font-black uppercase tracking-widest text-xs hover:bg-[#6a35ff] transition-all shadow-2xl">
