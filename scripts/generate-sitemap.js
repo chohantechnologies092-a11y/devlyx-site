@@ -87,6 +87,18 @@ ${urls.map(u => `  <url>
 
     fs.writeFileSync(sitemapPath, sitemapContent, 'utf8');
     console.log(`Successfully generated sitemap.xml with ${urls.length} entries.`);
+
+    // Ensure Netlify functions-internal has CommonJS scope so Netlify Emails bundling never fails
+    try {
+      const fiDir = path.resolve(__dirname, '../.netlify/functions-internal');
+      const emailsDir = path.resolve(fiDir, 'emails');
+      fs.mkdirSync(fiDir, { recursive: true });
+      fs.mkdirSync(emailsDir, { recursive: true });
+      fs.writeFileSync(path.resolve(fiDir, 'package.json'), JSON.stringify({ type: "commonjs" }, null, 2));
+      fs.writeFileSync(path.resolve(emailsDir, 'package.json'), JSON.stringify({ type: "commonjs" }, null, 2));
+    } catch (e) {
+      console.warn("Could not write functions-internal package.json:", e);
+    }
     
     // Process exits successfully
     process.exit(0);
