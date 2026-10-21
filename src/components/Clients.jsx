@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { clientService } from '../services/clientService';
+import { clientService, DEFAULT_CLIENTS } from '../services/clientService';
 import { motion } from 'framer-motion';
 
 export default function Clients() {
-  const [clients, setClients] = useState([]);
+  const [clients, setClients] = useState(DEFAULT_CLIENTS);
 
   useEffect(() => {
     clientService.getActiveClients().then(data => {
-      setClients(data);
+      if (data && data.length > 0) {
+        setClients(data);
+      }
     }).catch(console.error);
   }, []);
 

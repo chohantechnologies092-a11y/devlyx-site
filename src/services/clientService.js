@@ -16,7 +16,7 @@ const COLLECTION_NAME = 'clients';
 const IMGBB_API_KEY = "3bde4002f57762e1e1ca9dc45a90b80b";
 import imageCompression from 'browser-image-compression';
 
-const DEFAULT_CLIENTS = [
+export const DEFAULT_CLIENTS = [
     { id: 'c1', name: 'AL Sama Suppliers', websiteUrl: '', isActive: true },
     { id: 'c2', name: 'Malfak Contracting Bahrain', websiteUrl: '', isActive: true },
     { id: 'c3', name: 'CarePlus Pharma Network', websiteUrl: '', isActive: true },

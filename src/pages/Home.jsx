@@ -1,19 +1,18 @@
-import React, { useEffect, Suspense, lazy } from 'react';
+import React, { useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
+import Clients from '../components/Clients';
+import About from '../components/About';
+import Services from '../components/Services';
+import Tech from '../components/Tech';
+import Projects from '../components/Projects';
+import Process from '../components/Process';
+import Testimonials from '../components/Testimonials';
+import Newsletter from '../components/Newsletter';
+import Contact from '../components/Contact';
+import Footer from '../components/Footer';
 import SEO from '../components/SEO';
 import { useLocation } from 'react-router-dom';
-
-const Clients = lazy(() => import('../components/Clients'));
-const About = lazy(() => import('../components/About'));
-const Tech = lazy(() => import('../components/Tech'));
-const Projects = lazy(() => import('../components/Projects'));
-const Services = lazy(() => import('../components/Services'));
-const Process = lazy(() => import('../components/Process'));
-const Testimonials = lazy(() => import('../components/Testimonials'));
-const Contact = lazy(() => import('../components/Contact'));
-const Footer = lazy(() => import('../components/Footer'));
-const Newsletter = lazy(() => import('../components/Newsletter'));
 
 function Home() {
   const location = useLocation();
@@ -38,14 +37,14 @@ function Home() {
   useEffect(() => {
 
     const observerOptions = {
-      threshold: 0.1,
-      rootMargin: "0px 0px -50px 0px"
+      threshold: 0.05,
+      rootMargin: "0px 0px 100px 0px"
     };
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry, index) => {
         if (entry.isIntersecting) {
-          // Staggered delay for .scroll-reveal and .reveal-card elements
+          const delay = Math.min(index * 40, 200);
           setTimeout(() => {
             entry.target.classList.add('active');
 
@@ -56,7 +55,7 @@ function Home() {
                 el.classList.remove('opacity-0', 'translate-y-10', '-translate-x-10', 'translate-x-10');
               });
             }
-          }, index * 100);
+          }, delay);
           observer.unobserve(entry.target);
         }
       });
@@ -79,18 +78,16 @@ function Home() {
       />
       <Navbar />
       <Hero />
-      <Suspense fallback={<div className="min-h-screen w-full bg-[#fcfcfd] animate-pulse"></div>}>
-        <Clients />
-        <About />
-        <Services />
-        <Tech />
-        <Projects />
-        <Process />
-        <Testimonials />
-        <Newsletter />
-        <Contact />
-        <Footer />
-      </Suspense>
+      <Clients />
+      <About />
+      <Services />
+      <Tech />
+      <Projects />
+      <Process />
+      <Testimonials />
+      <Newsletter />
+      <Contact />
+      <Footer />
     </div>
   );
 }

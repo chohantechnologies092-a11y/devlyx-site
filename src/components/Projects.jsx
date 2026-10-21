@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { projectService, DEFAULT_PROJECTS } from '../services/projectService';
 
 const Projects = () => {
-    const [projects, setProjects] = React.useState([]);
-    const [loading, setLoading] = React.useState(true);
+    const [projects, setProjects] = React.useState(DEFAULT_PROJECTS);
+    const [loading, setLoading] = React.useState(false);
 
     useEffect(() => {
         const fetchProjects = async () => {
