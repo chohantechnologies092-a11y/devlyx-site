@@ -5,15 +5,17 @@ import { projectService, DEFAULT_PROJECTS } from '../services/projectService';
 const Projects = () => {
     const [projects, setProjects] = React.useState(DEFAULT_PROJECTS);
     const [loading, setLoading] = React.useState(false);
+    const [hasRevealed, setHasRevealed] = React.useState(false);
 
     useEffect(() => {
         const fetchProjects = async () => {
             try {
                 const data = await projectService.getAllProjects();
-                setProjects(data && data.length > 0 ? data : DEFAULT_PROJECTS);
+                if (data && data.length > 0) {
+                    setProjects(data);
+                }
             } catch (error) {
                 console.error("Error fetching projects:", error);
-                setProjects(DEFAULT_PROJECTS);
             } finally {
                 setLoading(false);
             }
@@ -22,23 +24,27 @@ const Projects = () => {
     }, []);
 
     useEffect(() => {
+        // Immediate check if section is already in or near viewport
+        const section = document.getElementById('projects');
+        if (section) {
+            const rect = section.getBoundingClientRect();
+            if (rect.top < window.innerHeight + 200) {
+                setHasRevealed(true);
+            }
+        }
+
         const observer = new IntersectionObserver((entries) => {
-            let delay = 0;
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    setTimeout(() => {
-                        entry.target.classList.add('active');
-                        setTimeout(() => entry.target.classList.remove('project-reveal', 'active'), 1200);
-                    }, delay);
-                    delay += 150;
+                    setHasRevealed(true);
                     observer.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+        }, { threshold: 0.05, rootMargin: "0px 0px 150px 0px" });
 
-        document.querySelectorAll('.project-reveal').forEach(el => observer.observe(el));
+        if (section) observer.observe(section);
         return () => observer.disconnect();
-    }, [loading, projects]);
+    }, []);
 
     const activeList = projects.length > 0 ? projects : DEFAULT_PROJECTS;
     const portfolioProjects = activeList.filter(p => p.entryType !== 'product');
@@ -52,12 +58,12 @@ const Projects = () => {
             <style>{`
                 .project-reveal {
                     opacity: 0;
-                    transform: translateY(40px) scale(0.98);
-                    transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+                    transform: translateY(30px) scale(0.99);
+                    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
                 }
                 .project-reveal.active {
-                    opacity: 1;
-                    transform: translateY(0) scale(1);
+                    opacity: 1 !important;
+                    transform: translateY(0) scale(1) !important;
                 }
             `}</style>
 
@@ -71,7 +77,7 @@ const Projects = () => {
             <div className="container mx-auto px-4 md:px-6 relative z-10">
 
                 {/* --- Section Header --- */}
-                <div className="project-reveal flex flex-col items-center text-center mb-20 relative">
+                <div className={`project-reveal ${hasRevealed ? 'active' : ''} flex flex-col items-center text-center mb-20 relative`}>
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm mb-6">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#00c2cb] animate-pulse"></span>
                         <span className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-[0.1em]">Featured Cases</span>
@@ -89,7 +95,7 @@ const Projects = () => {
 
                 {/* --- FLAGSHIP HERO BLOCK (Durood Circle - Green Theme) --- */}
                 {flagshipProject && (
-                    <div className="project-reveal w-full max-w-[1200px] mx-auto mb-16 rounded-[2.5rem] bg-gradient-to-br from-[#00321a] to-[#00170c] overflow-hidden relative shadow-[0_30px_60px_rgba(0,168,89,0.2)] flex flex-col lg:flex-row border border-[#00a859]/30 group">
+                    <div className={`project-reveal ${hasRevealed ? 'active' : ''} w-full max-w-[1200px] mx-auto mb-16 rounded-[2.5rem] bg-gradient-to-br from-[#00321a] to-[#00170c] overflow-hidden relative shadow-[0_30px_60px_rgba(0,168,89,0.2)] flex flex-col lg:flex-row border border-[#00a859]/30 group`}>
                         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00a859]/20 blur-[120px] rounded-full pointer-events-none transition-colors duration-1000 z-0"></div>
 
                         {/* Inverted White Background Logo Watermark */}
@@ -172,7 +178,13 @@ const Projects = () => {
                             <div className="relative w-full max-w-[240px] md:max-w-[260px] aspect-[1/2.16] bg-[#111111] rounded-[2rem] md:rounded-[2.5rem] border-[8px] md:border-[10px] border-[#4c4949] shadow-2xl overflow-hidden transform lg:-rotate-2 group-hover:rotate-0 group-hover:scale-105 transition-all duration-[1s] ease-out">
                                 <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 md:w-20 h-4 md:h-5 bg-[#4c4949] rounded-full z-30"></div>
                                 {(flagshipProject.mockupImage || flagshipProject.image) ? (
-                                    <img src={flagshipProject.mockupImage || flagshipProject.image} className="w-full h-full object-cover object-top opacity-100 transition-opacity duration-700" alt={flagshipProject.title} />
+                                    <img 
+                                        src={flagshipProject.mockupImage || flagshipProject.image} 
+                                        className="w-full h-full object-cover object-top opacity-100 transition-opacity duration-700" 
+                                        alt={flagshipProject.title}
+                                        loading="eager"
+                                        decoding="async"
+                                    />
                                 ) : (
                                     <div
                                         className="w-full h-full"
@@ -190,16 +202,22 @@ const Projects = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {gridProjects.map((proj, index) => (
                                 <div
-                                    key={index}
-                                    className="project-reveal group relative rounded-[2.5rem] bg-white border border-gray-200 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col"
+                                    key={proj.id || index}
+                                    className={`project-reveal ${hasRevealed ? 'active' : ''} group relative rounded-[2.5rem] bg-white border border-gray-200 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col`}
                                 >
                                     {/* Top Image Section */}
-                                    <div className="relative w-full h-auto overflow-hidden bg-gray-100 shrink-0">
+                                    <div className="relative w-full h-[260px] overflow-hidden bg-gray-100 shrink-0">
                                         {proj.image ? (
-                                            <img src={proj.image} className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-[1.5s] ease-out" alt={proj.title} />
+                                            <img 
+                                                src={proj.image} 
+                                                loading="lazy"
+                                                decoding="async"
+                                                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-[1.5s] ease-out" 
+                                                alt={proj.title} 
+                                            />
                                         ) : (
                                             <div
-                                                className="w-full h-[260px]"
+                                                className="w-full h-full"
                                                 style={{ background: `linear-gradient(135deg, ${proj.color || '#6a35ff'}33 0%, #f8f9fc 100%)` }}
                                             />
                                         )}
